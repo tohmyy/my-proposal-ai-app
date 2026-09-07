@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Koya Talent — AI Proposal App
 
-## Getting Started
+Week 3 proposal application: intake → Claude generate → human review → approval → PDF/email.
 
-First, run the development server:
+## Specs
+
+- [PRD.md](./PRD.md) — product brief
+- [TDD.md](./TDD.md) — architecture & data model
+- [AI-SPEC.md](./AI-SPEC.md) — Claude contracts & prompts
+- [assets/](./assets/) — intake fields, proposal template, client email
+
+## Phase 1 (current)
+
+Next.js app with **Koya Ink** theme, Supabase/Postgres via Drizzle, proposal list, intake create/edit, and proposal hub (status + summary + events). No AI yet.
+
+### Setup
+
+1. Create a Supabase project.
+2. Copy env file and fill values:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required for Phase 1:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL` — Supabase Postgres URI (Settings → Database)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (used later for Storage; safe to set now)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Push schema:
 
-## Learn More
+```bash
+npm run db:push
+```
 
-To learn more about Next.js, take a look at the following resources:
+Or run [`drizzle/0000_phase1.sql`](./drizzle/0000_phase1.sql) in the Supabase SQL editor.  
+If you already applied an older Phase 1 schema, run [`drizzle/0001_structured_intake.sql`](./drizzle/0001_structured_intake.sql) instead (or as well).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Start the app:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Structured intake
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Goals** and **recommended services** are string lists
+- **Pricing** splits into proposed price, range, and notes (price *or* range required)
+- **Timeline** is a summary text plus optional phases (`duration` / `deliveryWindow`)
+
+### Routes
+
+| Path | Purpose |
+| --- | --- |
+| `/` | Proposal list |
+| `/proposals/new` | Intake form → create draft |
+| `/proposals/[id]` | Hub (status, summary, activity) |
+| `/proposals/[id]/intake` | Edit intake |
+
+## Later phases
+
+2. Claude generate + TipTap edit · 3. Section regen · 4. Approval · 5. PDF + Resend · 6. Deploy
