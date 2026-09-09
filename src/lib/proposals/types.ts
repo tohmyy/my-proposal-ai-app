@@ -201,3 +201,120 @@ export const STATUS_LABELS: Record<string, string> = {
   sent: "Sent",
   failed: "Failed",
 };
+
+export type ClarificationGap = { field: string; message: string };
+
+/** Form control ids that can show clarification errors. */
+export type ClarificationControlId =
+  | "clientNeedsSummary"
+  | "projectScope"
+  | "goals"
+  | "recommendedServices"
+  | "proposedTimeline"
+  | "timelinePhases"
+  | "proposedPrice"
+  | "priceRange"
+  | "pricingNotes"
+  | "supportingMaterial"
+  | "clientName"
+  | "clientEmail"
+  | "companyName"
+  | "salespersonName"
+  | "dateOfCall";
+
+function normalizeGapField(field: string) {
+  return field.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+/** Map Claude / app gap field names → intake form control(s). */
+const GAP_FIELD_TO_CONTROLS: Record<string, ClarificationControlId[]> = {
+  client_needs_summary: ["clientNeedsSummary"],
+  clientneedssummary: ["clientNeedsSummary"],
+  needs: ["clientNeedsSummary"],
+  project_scope: ["projectScope"],
+  projectscope: ["projectScope"],
+  scope: ["projectScope"],
+  goals: ["goals"],
+  goals_and_objectives: ["goals"],
+  recommended_services: ["recommendedServices"],
+  recommendedservices: ["recommendedServices"],
+  deliverables: ["recommendedServices"],
+  proposed_timeline: ["proposedTimeline", "timelinePhases"],
+  proposedtimeline: ["proposedTimeline", "timelinePhases"],
+  timeline: ["proposedTimeline", "timelinePhases"],
+  timeline_phases: ["timelinePhases", "proposedTimeline"],
+  timelinephases: ["timelinePhases", "proposedTimeline"],
+  pricing: ["proposedPrice", "priceRange"],
+  estimated_pricing: ["proposedPrice", "priceRange"],
+  proposed_price: ["proposedPrice"],
+  proposedprice: ["proposedPrice"],
+  price_range: ["priceRange"],
+  pricerange: ["priceRange"],
+  pricing_notes: ["pricingNotes"],
+  pricingnotes: ["pricingNotes"],
+  supporting_material: ["supportingMaterial"],
+  supportingmaterial: ["supportingMaterial"],
+  client_name: ["clientName"],
+  clientname: ["clientName"],
+  client_email: ["clientEmail"],
+  clientemail: ["clientEmail"],
+  company_name: ["companyName"],
+  companyname: ["companyName"],
+  salesperson_name: ["salespersonName"],
+  salespersonname: ["salespersonName"],
+  date_of_call: ["dateOfCall"],
+  dateofcall: ["dateOfCall"],
+};
+
+/**
+ * Collapse clarification gaps into per-control error messages.
+ * Group fields (pricing, timeline) highlight all related inputs with the same note.
+ */
+export function mapClarificationGapsToControls(
+  gaps: ClarificationGap[],
+): Partial<Record<ClarificationControlId, string>> {
+  const out: Partial<Record<ClarificationControlId, string>> = {};
+
+  for (const gap of gaps) {
+    const key = normalizeGapField(gap.field);
+    const controls =
+      GAP_FIELD_TO_CONTROLS[key] ??
+      GAP_FIELD_TO_CONTROLS[key.replace(/_/g, "")] ??
+      [];
+
+    if (controls.length === 0) {
+      // Unknown field: try camelCase passthrough if it matches a known control id
+      const camel = gap.field.replace(/_([a-z])/g, (_, c: string) =>
+        c.toUpperCase(),
+      ) as ClarificationControlId;
+      if (
+        [
+          "clientNeedsSummary",
+          "projectScope",
+          "goals",
+          "recommendedServices",
+          "proposedTimeline",
+          "timelinePhases",
+          "proposedPrice",
+          "priceRange",
+          "pricingNotes",
+          "supportingMaterial",
+        ].includes(camel)
+      ) {
+        out[camel] = out[camel]
+          ? `${out[camel]} ${gap.message}`
+          : gap.message;
+      }
+      continue;
+    }
+
+    for (const control of controls) {
+      out[control] = out[control]
+        ? `${out[control]} ${gap.message}`
+        : gap.message;
+    }
+  }
+
+  return out;
+}
+

@@ -117,8 +117,15 @@ export default async function ProposalHubPage({
               </div>
             )}
           <p className="mt-3 text-orange-900/80">
-            Update intake, then generate again. Partial sections may already be
-            editable if the model drafted them.
+            Update{" "}
+            <Link
+              href={`/proposals/${id}/intake`}
+              className="font-semibold underline underline-offset-2"
+            >
+              intake
+            </Link>
+            , then generate again. Partial sections may already be editable if
+            the model drafted them.
           </p>
         </div>
       )}

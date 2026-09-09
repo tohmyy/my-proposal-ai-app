@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import {
   getProposal,
+  listProposalEvents,
   updateProposalIntake,
 } from "@/lib/proposals/actions";
 import { IntakeForm } from "@/components/intake-form";
+import type { ClarificationGap } from "@/lib/proposals/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,23 @@ export default async function EditIntakePage({
   const { id } = await params;
   const proposal = await getProposal(id);
   if (!proposal) notFound();
+
+  const events = await listProposalEvents(id);
+  const clarificationEvent =
+    proposal.status === "needs_clarification"
+      ? events.find((e) => e.type === "clarification_needed")
+      : null;
+
+  const meta = clarificationEvent?.meta as
+    | {
+        gaps?: ClarificationGap[];
+        clarifyingQuestions?: string[];
+      }
+    | null
+    | undefined;
+
+  const clarificationGaps = meta?.gaps ?? [];
+  const clarifyingQuestions = meta?.clarifyingQuestions ?? [];
 
   async function save(formData: FormData) {
     "use server";
@@ -37,6 +56,8 @@ export default async function EditIntakePage({
       <IntakeForm
         action={save}
         initial={proposal}
+        clarificationGaps={clarificationGaps}
+        clarifyingQuestions={clarifyingQuestions}
         submitLabel="Save intake"
       />
     </div>

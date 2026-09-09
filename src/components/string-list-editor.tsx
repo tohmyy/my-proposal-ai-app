@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export function StringListEditor({
   label,
@@ -12,6 +13,7 @@ export function StringListEditor({
   onChange,
   placeholder = "Add an item…",
   hard,
+  errorNote,
 }: {
   label: string;
   name: string;
@@ -19,6 +21,7 @@ export function StringListEditor({
   onChange: (items: string[]) => void;
   placeholder?: string;
   hard?: boolean;
+  errorNote?: string;
 }) {
   const rows = items.length > 0 ? items : [""];
 
@@ -39,7 +42,7 @@ export function StringListEditor({
 
   return (
     <div className="space-y-2">
-      <Label>
+      <Label className={errorNote ? "text-rose-800" : undefined}>
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -47,7 +50,11 @@ export function StringListEditor({
           </span>
         )}
       </Label>
-      <input type="hidden" name={name} value={JSON.stringify(items.filter((i) => i.trim()))} />
+      <input
+        type="hidden"
+        name={name}
+        value={JSON.stringify(items.filter((i) => i.trim()))}
+      />
       <ul className="space-y-2">
         {rows.map((item, index) => (
           <li key={index} className="flex gap-2">
@@ -56,6 +63,11 @@ export function StringListEditor({
               placeholder={placeholder}
               onChange={(e) => updateAt(index, e.target.value)}
               aria-label={`${label} ${index + 1}`}
+              aria-invalid={Boolean(errorNote)}
+              className={cn(
+                errorNote &&
+                  "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+              )}
             />
             <Button
               type="button"
@@ -70,6 +82,7 @@ export function StringListEditor({
           </li>
         ))}
       </ul>
+      {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
       <Button type="button" variant="ghost" size="sm" onClick={addRow}>
         <Plus className="h-4 w-4" />
         Add item

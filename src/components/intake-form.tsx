@@ -10,9 +10,12 @@ import { TimelinePhasesEditor } from "@/components/timeline-phases-editor";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
+  mapClarificationGapsToControls,
+  type ClarificationGap,
   type IntakeInput,
 } from "@/lib/proposals/types";
 import type { Proposal, TimelinePhase } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 type IntakeFormProps = {
   action: (
@@ -20,12 +23,16 @@ type IntakeFormProps = {
   ) => Promise<{ ok: false; error: string } | { ok: true } | void>;
   initial?: Proposal | null;
   submitLabel?: string;
+  clarificationGaps?: ClarificationGap[];
+  clarifyingQuestions?: string[];
 };
 
 export function IntakeForm({
   action,
   initial,
   submitLabel = "Save draft",
+  clarificationGaps = [],
+  clarifyingQuestions = [],
 }: IntakeFormProps) {
   const [values, setValues] = useState({
     title: initial?.title ?? "",
@@ -55,6 +62,12 @@ export function IntakeForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  const fieldErrors = useMemo(
+    () => mapClarificationGapsToControls(clarificationGaps),
+    [clarificationGaps],
+  );
+  const hasClarification = clarificationGaps.length > 0;
 
   const intakePreview: IntakeInput = useMemo(
     () => ({
@@ -109,7 +122,24 @@ export function IntakeForm({
 
   return (
     <form action={onSubmit} className="space-y-10 animate-in-up">
-      {missingHard.length > 0 && (
+      {hasClarification && (
+        <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-950">
+          <p className="font-semibold">Clarification needed</p>
+          <p className="mt-1 text-rose-900/90">
+            Highlighted fields below need more detail before generation can
+            complete a full proposal. Fill them in, save, then generate again.
+          </p>
+          {clarifyingQuestions.length > 0 && (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-rose-900">
+              {clarifyingQuestions.map((q) => (
+                <li key={q}>{q}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {!hasClarification && missingHard.length > 0 && (
         <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <p className="font-semibold">Soft gaps before generation</p>
           <p className="mt-1 text-amber-900/90">
@@ -149,12 +179,14 @@ export function IntakeForm({
             label="Salesperson name"
             value={values.salespersonName}
             onChange={(v) => setField("salespersonName", v)}
+            errorNote={fieldErrors.salespersonName}
           />
           <Field
             id="clientName"
             label="Client name"
             value={values.clientName}
             onChange={(v) => setField("clientName", v)}
+            errorNote={fieldErrors.clientName}
           />
           <Field
             id="clientEmail"
@@ -162,12 +194,14 @@ export function IntakeForm({
             type="email"
             value={values.clientEmail}
             onChange={(v) => setField("clientEmail", v)}
+            errorNote={fieldErrors.clientEmail}
           />
           <Field
             id="companyName"
             label="Company name"
             value={values.companyName}
             onChange={(v) => setField("companyName", v)}
+            errorNote={fieldErrors.companyName}
           />
           <Field
             id="dateOfCall"
@@ -175,6 +209,7 @@ export function IntakeForm({
             type="date"
             value={values.dateOfCall}
             onChange={(v) => setField("dateOfCall", v)}
+            errorNote={fieldErrors.dateOfCall}
           />
         </div>
       </section>
@@ -196,6 +231,7 @@ export function IntakeForm({
             value={values.clientNeedsSummary}
             onChange={(v) => setField("clientNeedsSummary", v)}
             rows={4}
+            errorNote={fieldErrors.clientNeedsSummary}
           />
           <Area
             id="projectScope"
@@ -204,6 +240,7 @@ export function IntakeForm({
             value={values.projectScope}
             onChange={(v) => setField("projectScope", v)}
             rows={4}
+            errorNote={fieldErrors.projectScope}
           />
           <StringListEditor
             label="Goals and objectives"
@@ -211,6 +248,7 @@ export function IntakeForm({
             items={goals}
             onChange={setGoals}
             placeholder="e.g. Reduce manual reporting"
+            errorNote={fieldErrors.goals}
           />
           <StringListEditor
             label="Recommended services or deliverables"
@@ -218,13 +256,20 @@ export function IntakeForm({
             items={services}
             onChange={setServices}
             placeholder="e.g. Discovery workshop"
+            errorNote={fieldErrors.recommendedServices}
           />
         </div>
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+          <h2
+            className={cn(
+              "font-[family-name:var(--font-syne)] text-xl font-semibold",
+              (fieldErrors.proposedTimeline || fieldErrors.timelinePhases) &&
+                "text-rose-800",
+            )}
+          >
             Timeline
           </h2>
           <p className="mt-1 text-sm text-[var(--koya-muted)]">
@@ -240,16 +285,24 @@ export function IntakeForm({
           onChange={(v) => setField("proposedTimeline", v)}
           rows={3}
           placeholder="e.g. 6–8 weeks from kickoff, including feedback cycles"
+          errorNote={fieldErrors.proposedTimeline}
         />
         <TimelinePhasesEditor
           phases={timelinePhases}
           onChange={setTimelinePhases}
+          errorNote={fieldErrors.timelinePhases}
         />
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+          <h2
+            className={cn(
+              "font-[family-name:var(--font-syne)] text-xl font-semibold",
+              (fieldErrors.proposedPrice || fieldErrors.priceRange) &&
+                "text-rose-800",
+            )}
+          >
             Pricing
           </h2>
           <p className="mt-1 text-sm text-[var(--koya-muted)]">
@@ -263,6 +316,9 @@ export function IntakeForm({
             value={values.proposedPrice}
             onChange={(v) => setField("proposedPrice", v)}
             placeholder="e.g. $12,000"
+            invalid={Boolean(
+              fieldErrors.proposedPrice || fieldErrors.priceRange,
+            )}
           />
           <Field
             id="priceRange"
@@ -270,8 +326,16 @@ export function IntakeForm({
             value={values.priceRange}
             onChange={(v) => setField("priceRange", v)}
             placeholder="e.g. $10k–$15k"
+            invalid={Boolean(
+              fieldErrors.proposedPrice || fieldErrors.priceRange,
+            )}
           />
         </div>
+        {(fieldErrors.proposedPrice || fieldErrors.priceRange) && (
+          <p className="text-sm text-rose-700">
+            {fieldErrors.proposedPrice || fieldErrors.priceRange}
+          </p>
+        )}
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
           Required for generate: proposed price or price range
         </p>
@@ -283,6 +347,7 @@ export function IntakeForm({
           onChange={(v) => setField("pricingNotes", v)}
           rows={3}
           placeholder="Payment terms, exclusions, assumptions…"
+          errorNote={fieldErrors.pricingNotes}
         />
       </section>
 
@@ -303,6 +368,7 @@ export function IntakeForm({
           onChange={(v) => setField("supportingMaterial", v)}
           rows={5}
           placeholder="Paste distinctive phrases or constraints from the discovery call…"
+          errorNote={fieldErrors.supportingMaterial}
         />
       </section>
 
@@ -310,9 +376,14 @@ export function IntakeForm({
         <Button type="submit" disabled={pending} size="lg">
           {pending ? "Saving…" : submitLabel}
         </Button>
-        {missingHard.length === 0 && (
+        {missingHard.length === 0 && !hasClarification && (
           <p className="text-sm font-medium text-[var(--koya-accent)]">
-            Hard fields complete — ready for generation in Phase 2.
+            Hard fields complete — ready to generate.
+          </p>
+        )}
+        {hasClarification && (
+          <p className="text-sm text-rose-700">
+            Resolve highlighted fields, save, then regenerate from the hub.
           </p>
         )}
       </div>
@@ -329,6 +400,8 @@ function Field({
   optional,
   hard,
   placeholder,
+  errorNote,
+  invalid,
 }: {
   id: string;
   label: string;
@@ -338,10 +411,13 @@ function Field({
   optional?: boolean;
   hard?: boolean;
   placeholder?: string;
+  errorNote?: string;
+  invalid?: boolean;
 }) {
+  const showError = Boolean(errorNote || invalid);
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className={showError ? "text-rose-800" : undefined}>
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -360,8 +436,14 @@ function Field({
         type={type}
         value={value}
         placeholder={placeholder}
+        aria-invalid={showError}
         onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          showError &&
+            "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+        )}
       />
+      {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
     </div>
   );
 }
@@ -375,6 +457,7 @@ function Area({
   hard,
   optional,
   placeholder,
+  errorNote,
 }: {
   id: string;
   label: string;
@@ -384,10 +467,11 @@ function Area({
   hard?: boolean;
   optional?: boolean;
   placeholder?: string;
+  errorNote?: string;
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className={errorNote ? "text-rose-800" : undefined}>
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -406,8 +490,14 @@ function Area({
         rows={rows}
         value={value}
         placeholder={placeholder}
+        aria-invalid={Boolean(errorNote)}
         onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          errorNote &&
+            "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+        )}
       />
+      {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
     </div>
   );
 }
