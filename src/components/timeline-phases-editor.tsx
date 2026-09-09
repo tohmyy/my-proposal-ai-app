@@ -94,35 +94,62 @@ export function TimelinePhasesEditor({
               </Button>
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
-              <Input
-                placeholder="Label (e.g. Discovery)"
-                value={row.label ?? ""}
-                onChange={(e) => updateAt(index, { label: e.target.value })}
-                className={cn(
-                  errorNote &&
-                    "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
-                )}
-              />
-              <Input
-                placeholder="Duration (e.g. 4 days)"
-                value={row.duration ?? ""}
-                onChange={(e) => updateAt(index, { duration: e.target.value })}
-                className={cn(
-                  errorNote &&
-                    "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
-                )}
-              />
-              <Input
-                placeholder="Delivery window (e.g. 1 week)"
-                value={row.deliveryWindow ?? ""}
-                onChange={(e) =>
-                  updateAt(index, { deliveryWindow: e.target.value })
-                }
-                className={cn(
-                  errorNote &&
-                    "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
-                )}
-              />
+              <div className="space-y-1">
+                <Label
+                  htmlFor={`phase-${index}-label`}
+                  className="text-xs font-medium text-[var(--koya-muted)]"
+                >
+                  Label
+                </Label>
+                <Input
+                  id={`phase-${index}-label`}
+                  placeholder="e.g. Discovery"
+                  value={row.label ?? ""}
+                  onChange={(e) => updateAt(index, { label: e.target.value })}
+                  className={cn(
+                    errorNote &&
+                      "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                  )}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor={`phase-${index}-duration`}
+                  className="text-xs font-medium text-[var(--koya-muted)]"
+                >
+                  Duration
+                </Label>
+                <Input
+                  id={`phase-${index}-duration`}
+                  placeholder="e.g. 4 days"
+                  value={row.duration ?? ""}
+                  onChange={(e) => updateAt(index, { duration: e.target.value })}
+                  className={cn(
+                    errorNote &&
+                      "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                  )}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor={`phase-${index}-deliveryWindow`}
+                  className="text-xs font-medium text-[var(--koya-muted)]"
+                >
+                  Delivery window
+                </Label>
+                <Input
+                  id={`phase-${index}-deliveryWindow`}
+                  placeholder="e.g. 1 week"
+                  value={row.deliveryWindow ?? ""}
+                  onChange={(e) =>
+                    updateAt(index, { deliveryWindow: e.target.value })
+                  }
+                  className={cn(
+                    errorNote &&
+                      "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                  )}
+                />
+              </div>
             </div>
           </li>
         ))}

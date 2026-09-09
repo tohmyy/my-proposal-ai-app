@@ -17,6 +17,7 @@ Adapted from the original reference form for structured generation. Original: ht
 | Recommended Services or Deliverables | `recommended_services` | `string[]` | Service / deliverable bullets. Soft |
 | Proposed Timeline (summary) | `proposed_timeline` | text | Free-text duration or window. **Hard** if no usable phases |
 | Timeline Phases | `timeline_phases` | object[] | Optional: `{ phase, label?, duration?, delivery_window? }`. Counts toward hard timeline if a phase has duration or delivery window |
+| Currency | `currency` | text | ISO code (e.g. `USD`, `EUR`, `GBP`, `CAD`, `AUD`). Defaults to `USD`. Applies to `proposed_price`/`price_range` |
 | Proposed Price | `proposed_price` | text | Concrete price. **Hard** if `price_range` empty |
 | Price Range | `price_range` | text | Range when no single figure. **Hard** if `proposed_price` empty |
 | Pricing Notes | `pricing_notes` | text | Terms, exclusions, assumptions. Soft alone — not enough for commercial completeness |

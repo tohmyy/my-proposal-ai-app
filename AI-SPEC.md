@@ -60,6 +60,7 @@ Aligned with [assets/intake-form-fields.md](./assets/intake-form-fields.md) and 
 | `recommended_services` | Soft | `string[]` service / deliverable bullets |
 | `proposed_timeline` | **Hard*** | Free-text summary |
 | `timeline_phases` | **Hard*** | Optional `{ phase, label?, duration?, deliveryWindow? }[]` |
+| `currency` | Soft | ISO code (e.g. `USD`, `EUR`); defaults to `USD`. Applies to `proposed_price`/`price_range` |
 | `proposed_price` | **Hard**** | Concrete price |
 | `price_range` | **Hard**** | Range when no single figure |
 | `pricing_notes` | Soft | Terms / exclusions; **not** enough alone |

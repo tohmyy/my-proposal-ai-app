@@ -50,6 +50,7 @@ export const proposals = pgTable("proposals", {
     .$type<TimelinePhase[]>()
     .notNull()
     .default([]),
+  currency: text("currency").notNull().default("USD"),
   proposedPrice: text("proposed_price").notNull().default(""),
   priceRange: text("price_range").notNull().default(""),
   pricingNotes: text("pricing_notes").notNull().default(""),

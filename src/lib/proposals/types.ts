@@ -34,6 +34,7 @@ export const intakeSchema = z.object({
   recommendedServices: z.array(z.string().trim()).default([]),
   proposedTimeline: z.string().trim().default(""),
   timelinePhases: z.array(timelinePhaseSchema).default([]),
+  currency: z.string().trim().default("USD"),
   proposedPrice: z.string().trim().default(""),
   priceRange: z.string().trim().default(""),
   pricingNotes: z.string().trim().default(""),
@@ -140,6 +141,7 @@ export function parseIntakeFormData(formData: FormData) {
     ),
     proposedTimeline: formData.get("proposedTimeline"),
     timelinePhases: parseTimelinePhasesJson(formData.get("timelinePhasesJson")),
+    currency: formData.get("currency"),
     proposedPrice: formData.get("proposedPrice"),
     priceRange: formData.get("priceRange"),
     pricingNotes: formData.get("pricingNotes"),
@@ -160,6 +162,7 @@ export function proposalToIntake(proposal: {
   recommendedServices: string[];
   proposedTimeline: string;
   timelinePhases: TimelinePhase[];
+  currency: string;
   proposedPrice: string;
   priceRange: string;
   pricingNotes: string;
@@ -183,6 +186,7 @@ export function proposalToIntake(proposal: {
       duration: p.duration ?? "",
       deliveryWindow: p.deliveryWindow ?? "",
     })),
+    currency: proposal.currency,
     proposedPrice: proposal.proposedPrice,
     priceRange: proposal.priceRange,
     pricingNotes: proposal.pricingNotes,

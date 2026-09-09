@@ -39,6 +39,7 @@ function intakePayload(intake: IntakeInput) {
       duration: p.duration,
       deliveryWindow: p.deliveryWindow,
     })),
+    currency: intake.currency,
     proposed_price: intake.proposedPrice,
     price_range: intake.priceRange,
     pricing_notes: intake.pricingNotes,

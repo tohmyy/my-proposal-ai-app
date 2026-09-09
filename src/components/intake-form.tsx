@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { StringListEditor } from "@/components/string-list-editor";
 import { TimelinePhasesEditor } from "@/components/timeline-phases-editor";
@@ -16,6 +17,8 @@ import {
 } from "@/lib/proposals/types";
 import type { Proposal, TimelinePhase } from "@/db/schema";
 import { cn } from "@/lib/utils";
+
+const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
 
 type IntakeFormProps = {
   action: (
@@ -44,6 +47,7 @@ export function IntakeForm({
     clientNeedsSummary: initial?.clientNeedsSummary ?? "",
     projectScope: initial?.projectScope ?? "",
     proposedTimeline: initial?.proposedTimeline ?? "",
+    currency: initial?.currency ?? "USD",
     proposedPrice: initial?.proposedPrice ?? "",
     priceRange: initial?.priceRange ?? "",
     pricingNotes: initial?.pricingNotes ?? "",
@@ -309,7 +313,22 @@ export function IntakeForm({
             Need a proposed price <em>or</em> a range. Notes alone are not enough.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select
+              id="currency"
+              name="currency"
+              value={values.currency}
+              onChange={(e) => setField("currency", e.target.value)}
+            >
+              {CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </Select>
+          </div>
           <Field
             id="proposedPrice"
             label="Proposed price"
