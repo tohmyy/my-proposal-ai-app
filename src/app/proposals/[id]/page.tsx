@@ -4,6 +4,7 @@ import {
   getProposal,
   listProposalEvents,
 } from "@/lib/proposals/actions";
+import { listSections } from "@/lib/proposals/generate-actions";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
@@ -11,6 +12,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { GenerateButton } from "@/components/generate-button";
 import type { TimelinePhase } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +26,23 @@ export default async function ProposalHubPage({
   const proposal = await getProposal(id);
   if (!proposal) notFound();
 
-  const events = await listProposalEvents(id);
+  const [events, sections] = await Promise.all([
+    listProposalEvents(id),
+    listSections(id),
+  ]);
   const intake = proposalToIntake(proposal);
   const missing = getMissingHardFields(intake);
+
+  const clarificationEvent = events.find((e) => e.type === "clarification_needed");
+  const clarificationMeta = clarificationEvent?.meta as
+    | {
+        gaps?: { field: string; message: string }[];
+        clarifyingQuestions?: string[];
+      }
+    | null
+    | undefined;
+
+  const canEdit = sections.length > 0;
 
   return (
     <div className="space-y-10 animate-in-up">
@@ -50,25 +66,64 @@ export default async function ProposalHubPage({
               .join(" · ") || "Client details incomplete"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           <Link
             href={`/proposals/${id}/intake`}
             className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
           >
             Edit intake
           </Link>
-          <button
-            type="button"
-            disabled
-            title="Available in Phase 2"
-            className="inline-flex h-11 cursor-not-allowed items-center rounded-md bg-[var(--koya-accent)]/40 px-4 text-sm font-semibold text-white"
-          >
-            Generate with AI
-          </button>
+          {canEdit && (
+            <>
+              <Link
+                href={`/proposals/${id}/preview`}
+                className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+              >
+                Preview proposal
+              </Link>
+              <Link
+                href={`/proposals/${id}/edit`}
+                className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+              >
+                Edit sections
+              </Link>
+            </>
+          )}
+          <GenerateButton proposalId={id} />
         </div>
       </header>
 
-      {missing.length > 0 && (
+      {proposal.status === "needs_clarification" && (
+        <div className="rounded-lg border border-orange-300/80 bg-orange-50/90 px-4 py-4 text-sm text-orange-950">
+          <p className="font-semibold">Needs clarification before a complete proposal</p>
+          {clarificationMeta?.gaps && clarificationMeta.gaps.length > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {clarificationMeta.gaps.map((gap) => (
+                <li key={`${gap.field}-${gap.message}`}>
+                  <span className="font-medium">{gap.field}:</span> {gap.message}
+                </li>
+              ))}
+            </ul>
+          )}
+          {clarificationMeta?.clarifyingQuestions &&
+            clarificationMeta.clarifyingQuestions.length > 0 && (
+              <div className="mt-3">
+                <p className="font-semibold">Questions for the salesperson</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {clarificationMeta.clarifyingQuestions.map((q) => (
+                    <li key={q}>{q}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          <p className="mt-3 text-orange-900/80">
+            Update intake, then generate again. Partial sections may already be
+            editable if the model drafted them.
+          </p>
+        </div>
+      )}
+
+      {missing.length > 0 && proposal.status !== "needs_clarification" && (
         <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <p className="font-semibold">Soft gaps</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -77,6 +132,40 @@ export default async function ProposalHubPage({
             ))}
           </ul>
         </div>
+      )}
+
+      {sections.length > 0 && (
+        <section className="rounded-xl border border-[var(--koya-line)] bg-white/70 p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-[family-name:var(--font-syne)] text-lg font-semibold">
+              Sections ({sections.length})
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/proposals/${id}/preview`}
+                className="text-sm font-semibold text-[var(--koya-accent)] hover:underline"
+              >
+                Full preview
+              </Link>
+              <Link
+                href={`/proposals/${id}/edit`}
+                className="text-sm font-semibold text-[var(--koya-ink-soft)] hover:underline"
+              >
+                Open editor
+              </Link>
+            </div>
+          </div>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {sections.map((section) => (
+              <li
+                key={section.id}
+                className="rounded-md border border-[var(--koya-line)]/70 px-3 py-2 text-sm"
+              >
+                {section.title}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <section className="grid gap-6 lg:grid-cols-2">
@@ -142,11 +231,6 @@ export default async function ProposalHubPage({
           </ul>
         </div>
       </section>
-
-      <p className="text-sm text-[var(--koya-muted)]">
-        Phase 1 complete for this proposal: intake + hub. AI generation, section
-        editing, approval, PDF, and email arrive in later phases.
-      </p>
     </div>
   );
 }

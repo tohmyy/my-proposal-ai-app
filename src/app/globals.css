@@ -18,6 +18,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-source-sans);
   --font-display: var(--font-syne);
+  --font-proposal: var(--font-source-serif);
 }
 
 body {
@@ -74,3 +75,57 @@ body {
   border-color: var(--koya-accent);
   box-shadow: 0 12px 28px -18px rgba(12, 18, 34, 0.45);
 }
+
+.prose-koya {
+  color: var(--koya-ink);
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+
+.prose-koya h1,
+.prose-koya h2,
+.prose-koya h3 {
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-weight: 600;
+  margin: 1.15rem 0 0.55rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.prose-koya h1 {
+  font-size: 1.5rem;
+}
+
+.prose-koya h2 {
+  font-size: 1.28rem;
+}
+
+.prose-koya h3 {
+  font-size: 1.12rem;
+}
+
+.prose-koya p {
+  margin: 0.65rem 0;
+}
+
+.prose-koya ul,
+.prose-koya ol {
+  margin: 0.65rem 0;
+  padding-left: 1.35rem;
+}
+
+.prose-koya li {
+  margin: 0.25rem 0;
+}
+
+.prose-koya a {
+  color: var(--koya-accent);
+  text-decoration: underline;
+}
+
+.prose-koya strong {
+  font-weight: 700;
+}
+

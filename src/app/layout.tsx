@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Source_Sans_3, Syne } from "next/font/google";
+import { Source_Sans_3, Source_Serif_4, Syne } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
   variable: "--font-source-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -29,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sourceSans.variable} ${syne.variable} h-full antialiased`}
+      className={`${sourceSans.variable} ${sourceSerif.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <AppShell>{children}</AppShell>

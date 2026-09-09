@@ -2,18 +2,25 @@
 
 Week 3 proposal application: intake → Claude generate → human review → approval → PDF/email.
 
-## Specs
+## Specs & agent docs
 
-- [PRD.md](./PRD.md) — product brief
-- [TDD.md](./TDD.md) — architecture & data model
-- [AI-SPEC.md](./AI-SPEC.md) — Claude contracts & prompts
-- [assets/](./assets/) — intake fields, proposal template, client email
+| Doc | Purpose |
+| --- | --- |
+| [PRD.md](./PRD.md) | Product brief + test scenarios |
+| [TDD.md](./TDD.md) | Architecture, data model, APIs |
+| [AI-SPEC.md](./AI-SPEC.md) | Claude prompts, JSON contracts, guardrails |
+| [PHASES.md](./PHASES.md) | Build phases — **start here for “what next”** |
+| [DESIGN.md](./DESIGN.md) | Koya Ink visual system |
+| [AGENTS.md](./AGENTS.md) | Instructions for coding agents |
+| [assets/](./assets/) | Intake fields, proposal template, client email |
 
-## Phase 1 (current)
+## Current status
 
-Next.js app with **Koya Ink** theme, Supabase/Postgres via Drizzle, proposal list, intake create/edit, and proposal hub (status + summary + events). No AI yet.
+See [PHASES.md](./PHASES.md). Phase 2 (Claude generate + TipTap) is done; **Phase 3** is next (section regeneration).
 
-### Setup
+**Phase 2 env:** set `ANTHROPIC_API_KEY` in `.env` / `.env.local`, then restart `npm run dev`.
+
+## Setup
 
 1. Create a Supabase project.
 2. Copy env file and fill values:
@@ -53,15 +60,13 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Pricing** splits into proposed price, range, and notes (price *or* range required)
 - **Timeline** is a summary text plus optional phases (`duration` / `deliveryWindow`)
 
-### Routes
+### Routes (Phase 1–2)
 
 | Path | Purpose |
 | --- | --- |
 | `/` | Proposal list |
 | `/proposals/new` | Intake form → create draft |
-| `/proposals/[id]` | Hub (status, summary, activity) |
+| `/proposals/[id]` | Hub (status, generate, summary, activity) |
 | `/proposals/[id]/intake` | Edit intake |
-
-## Later phases
-
-2. Claude generate + TipTap edit · 3. Section regen · 4. Approval · 5. PDF + Resend · 6. Deploy
+| `/proposals/[id]/preview` | Full proposal preview (review before edit) |
+| `/proposals/[id]/edit` | TipTap section editor |
