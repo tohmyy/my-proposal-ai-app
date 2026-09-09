@@ -31,6 +31,7 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 - [x] Clarification UI (gaps + clarifying questions)
 - [x] `/proposals/[id]/edit`: TipTap; per-section **Save** + `section_saved` event
 - [x] Persist six section keys from AI-SPEC / proposal template
+- [x] *(explicit scope expansion, user-requested)* Inline click-to-edit directly on `/proposals/[id]/preview` — section body (TipTap), section titles, and header fields (prepared by/date/prepared for) all editable in place via Save/Cancel, reusing the same save actions and sanitize/event/revalidate pipeline. `/proposals/[id]/edit` is unchanged and kept as a fallback.
 
 **Needs:** `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`)
 

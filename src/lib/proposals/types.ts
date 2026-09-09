@@ -1,6 +1,17 @@
 import { z } from "zod";
 import type { TimelinePhase } from "@/db/schema";
 
+export function displayTitle(input: {
+  title?: string | null;
+  companyName: string;
+  clientName: string;
+}) {
+  if (input.title?.trim()) return input.title.trim();
+  if (input.companyName.trim()) return `Proposal for ${input.companyName.trim()}`;
+  if (input.clientName.trim()) return `Proposal for ${input.clientName.trim()}`;
+  return "Untitled proposal";
+}
+
 export const timelinePhaseSchema = z.object({
   phase: z.number().int().positive(),
   label: z.string().trim().optional().default(""),

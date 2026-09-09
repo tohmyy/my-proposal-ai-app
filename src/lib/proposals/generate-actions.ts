@@ -214,3 +214,56 @@ export async function saveSectionHtml(
   revalidatePath(`/proposals/${proposalId}/preview`);
   return { ok: true };
 }
+
+export async function saveSectionTitle(
+  proposalId: string,
+  sectionKey: string,
+  title: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const catalog = SECTION_CATALOG.find((s) => s.key === sectionKey);
+  if (!catalog) {
+    return { ok: false, error: "Unknown section" };
+  }
+
+  const trimmed = title.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Title can't be empty" };
+  }
+
+  const existing = await db
+    .select({ id: proposalSections.id })
+    .from(proposalSections)
+    .where(
+      and(
+        eq(proposalSections.proposalId, proposalId),
+        eq(proposalSections.key, sectionKey),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0]) {
+    return { ok: false, error: "Section not found — generate the proposal first" };
+  }
+
+  await db
+    .update(proposalSections)
+    .set({ title: trimmed, updatedAt: new Date() })
+    .where(eq(proposalSections.id, existing[0].id));
+
+  await db
+    .update(proposals)
+    .set({ updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "section_saved",
+    message: `Renamed section to “${trimmed}”.`,
+    meta: { sectionKey, field: "title" },
+  });
+
+  revalidatePath(`/proposals/${proposalId}`);
+  revalidatePath(`/proposals/${proposalId}/edit`);
+  revalidatePath(`/proposals/${proposalId}/preview`);
+  return { ok: true };
+}

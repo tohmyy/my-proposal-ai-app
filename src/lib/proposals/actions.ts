@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { proposals, proposalEvents } from "@/db/schema";
 import {
+  displayTitle,
   getMissingHardFields,
   parseIntakeFormData,
 } from "@/lib/proposals/types";
@@ -13,17 +14,6 @@ import {
 function emptyToNullDate(value: string | null | undefined) {
   if (!value || !value.trim()) return null;
   return value;
-}
-
-function displayTitle(input: {
-  title?: string | null;
-  companyName: string;
-  clientName: string;
-}) {
-  if (input.title?.trim()) return input.title.trim();
-  if (input.companyName.trim()) return `Proposal for ${input.companyName.trim()}`;
-  if (input.clientName.trim()) return `Proposal for ${input.clientName.trim()}`;
-  return "Untitled proposal";
 }
 
 export async function listProposals() {
@@ -143,6 +133,82 @@ export async function updateProposalIntake(id: string, formData: FormData) {
   revalidatePath("/");
   revalidatePath(`/proposals/${id}`);
   redirect(`/proposals/${id}`);
+}
+
+const HEADER_FIELDS = [
+  "clientName",
+  "companyName",
+  "salespersonName",
+  "dateOfCall",
+] as const;
+
+export type ProposalHeaderField = (typeof HEADER_FIELDS)[number];
+
+export async function saveProposalHeaderField(
+  proposalId: string,
+  field: ProposalHeaderField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!HEADER_FIELDS.includes(field)) {
+    return { ok: false, error: "Unknown field" };
+  }
+
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  const trimmed = value.trim();
+
+  if (field === "dateOfCall" && trimmed && !/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return { ok: false, error: "Invalid date" };
+  }
+
+  const nextValues = {
+    clientName: proposal.clientName,
+    companyName: proposal.companyName,
+    salespersonName: proposal.salespersonName,
+    dateOfCall: proposal.dateOfCall,
+  };
+
+  switch (field) {
+    case "dateOfCall":
+      nextValues.dateOfCall = emptyToNullDate(trimmed);
+      break;
+    case "clientName":
+      nextValues.clientName = trimmed;
+      break;
+    case "companyName":
+      nextValues.companyName = trimmed;
+      break;
+    case "salespersonName":
+      nextValues.salespersonName = trimmed;
+      break;
+  }
+
+  const title = displayTitle({
+    companyName: nextValues.companyName,
+    clientName: nextValues.clientName,
+  });
+
+  await db
+    .update(proposals)
+    .set({ ...nextValues, title, updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "header_updated",
+    message: `Updated ${field}.`,
+    meta: { field },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/proposals/${proposalId}`);
+  revalidatePath(`/proposals/${proposalId}/preview`);
+  revalidatePath(`/proposals/${proposalId}/edit`);
+
+  return { ok: true };
 }
 
 export async function listProposalEvents(proposalId: string) {
