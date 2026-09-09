@@ -5,18 +5,21 @@ import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useState, useTransition, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
+import { useInlineEditSlot } from "@/components/inline-edit-context";
 import { saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
 
 export function InlineSectionBody({
+  id,
   proposalId,
   section,
 }: {
+  id: string;
   proposalId: string;
   section: { id: string; key: string; htmlContent: string };
 }) {
   const [savedHtml, setSavedHtml] = useState(section.htmlContent || "<p></p>");
-  const [editing, setEditing] = useState(false);
+  const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLDivElement>(id);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -33,21 +36,26 @@ export function InlineSectionBody({
   });
 
   useEffect(() => {
-    editor?.setEditable(editing);
-    if (editing) editor?.commands.focus("end");
-  }, [editing, editor]);
+    if (!editor) return;
+    if (editing) {
+      editor.setEditable(true);
+      editor.commands.focus("end");
+    } else {
+      editor.commands.setContent(savedHtml, { emitUpdate: false });
+      editor.setEditable(false);
+    }
+  }, [editing, editor, savedHtml]);
 
   function startEditing(e: MouseEvent) {
     if (editing) return;
     if ((e.target as HTMLElement).closest("a")) return;
     setError(null);
-    setEditing(true);
+    open();
   }
 
   function cancel() {
-    editor?.commands.setContent(savedHtml, { emitUpdate: false });
     setError(null);
-    setEditing(false);
+    close();
   }
 
   function save() {
@@ -61,12 +69,12 @@ export function InlineSectionBody({
         return;
       }
       setSavedHtml(html);
-      setEditing(false);
+      close();
     });
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div ref={ref} className="mt-4 space-y-3">
       {editing && (
         <div className="flex flex-wrap items-center gap-2">
           <SectionToolbar editor={editor} />

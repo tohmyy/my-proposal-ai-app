@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useInlineEditSlot } from "@/components/inline-edit-context";
 import { cn } from "@/lib/utils";
 
 function formatDateDisplay(value: string) {
@@ -16,6 +17,7 @@ function formatDateDisplay(value: string) {
 }
 
 export function InlineText({
+  id,
   value,
   type = "text",
   placeholder,
@@ -24,6 +26,7 @@ export function InlineText({
   inputClassName,
   onSave,
 }: {
+  id: string;
   value: string;
   type?: "text" | "date";
   placeholder?: string;
@@ -33,7 +36,7 @@ export function InlineText({
   onSave: (value: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
   const [savedValue, setSavedValue] = useState(value);
-  const [editing, setEditing] = useState(false);
+  const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLSpanElement>(id);
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -41,12 +44,12 @@ export function InlineText({
   function startEditing() {
     setDraft(savedValue);
     setError(null);
-    setEditing(true);
+    open();
   }
 
   function cancel() {
     setError(null);
-    setEditing(false);
+    close();
   }
 
   function save() {
@@ -58,13 +61,13 @@ export function InlineText({
         return;
       }
       setSavedValue(draft.trim());
-      setEditing(false);
+      close();
     });
   }
 
   if (editing) {
     return (
-      <span className="inline-flex flex-wrap items-center gap-2 align-middle">
+      <span ref={ref} className="inline-flex flex-wrap items-center gap-2 align-middle">
         <Input
           autoFocus
           type={type}

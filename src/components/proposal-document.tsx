@@ -1,6 +1,7 @@
 import type { Proposal, ProposalSection } from "@/db/schema";
 import { InlineText } from "@/components/inline-text";
 import { InlineSectionBody } from "@/components/inline-section-body";
+import { InlineEditProvider } from "@/components/inline-edit-context";
 import { saveProposalHeaderField } from "@/lib/proposals/actions";
 import { saveSectionTitle } from "@/lib/proposals/generate-actions";
 
@@ -30,7 +31,7 @@ export function ProposalDocument({
     "your organization";
   const dateLabel = formatCallDate(proposal.dateOfCall);
 
-  return (
+  const article = (
     <article className="proposal-document mx-auto w-full max-w-3xl rounded-sm border border-[var(--koya-line)] bg-white px-8 py-10 shadow-[0_18px_50px_-28px_rgba(12,18,34,0.35)] sm:px-12 sm:py-14">
       <header className="border-b border-[var(--koya-line)] pb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--koya-accent)]">
@@ -44,6 +45,7 @@ export function ProposalDocument({
             <p>
               Prepared by{" "}
               <InlineText
+                id="header:salespersonName"
                 value={proposal.salespersonName ?? ""}
                 emptyLabel="add name"
                 onSave={saveProposalHeaderField.bind(
@@ -62,6 +64,7 @@ export function ProposalDocument({
             <p>
               Date:{" "}
               <InlineText
+                id="header:dateOfCall"
                 value={proposal.dateOfCall ?? ""}
                 type="date"
                 emptyLabel="add date"
@@ -79,6 +82,7 @@ export function ProposalDocument({
             <p>
               Prepared for{" "}
               <InlineText
+                id="header:clientName"
                 value={proposal.clientName ?? ""}
                 emptyLabel="add client name"
                 onSave={saveProposalHeaderField.bind(
@@ -89,6 +93,7 @@ export function ProposalDocument({
               />
               ,{" "}
               <InlineText
+                id="header:companyName"
                 value={proposal.companyName ?? ""}
                 emptyLabel="add company"
                 onSave={saveProposalHeaderField.bind(
@@ -119,6 +124,7 @@ export function ProposalDocument({
               {index + 1}.{" "}
               {editable ? (
                 <InlineText
+                  id={`section-title:${section.key}`}
                   value={section.title}
                   onSave={saveSectionTitle.bind(null, proposal.id, section.key)}
                 />
@@ -127,7 +133,11 @@ export function ProposalDocument({
               )}
             </h2>
             {editable ? (
-              <InlineSectionBody proposalId={proposal.id} section={section} />
+              <InlineSectionBody
+                id={`section-body:${section.key}`}
+                proposalId={proposal.id}
+                section={section}
+              />
             ) : (
               <div
                 className="prose-koya mt-4"
@@ -152,4 +162,6 @@ export function ProposalDocument({
       </footer>
     </article>
   );
+
+  return editable ? <InlineEditProvider>{article}</InlineEditProvider> : article;
 }
