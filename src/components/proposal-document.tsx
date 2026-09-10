@@ -32,7 +32,7 @@ export function ProposalDocument({
   const dateLabel = formatCallDate(proposal.dateOfCall);
 
   const article = (
-    <article className="proposal-document mx-auto w-full max-w-3xl rounded-sm border border-[var(--koya-line)] bg-white px-8 py-10 shadow-[0_18px_50px_-28px_rgba(12,18,34,0.35)] sm:px-12 sm:py-14">
+    <article className="proposal-document print-root mx-auto w-full max-w-3xl rounded-sm border border-[var(--koya-line)] bg-white px-8 py-10 shadow-[0_18px_50px_-28px_rgba(12,18,34,0.35)] sm:px-12 sm:py-14">
       <header className="border-b border-[var(--koya-line)] pb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--koya-accent)]">
           Koya Talent

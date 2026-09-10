@@ -254,17 +254,24 @@ Use this as the complete intake for TC-01 and as the starting point for regen te
 
 **PRD:** 6  
 
-**Steps**
+**Steps (available now — preview export)**
 
-1. Approved proposal → generate PDF → download and/or email with attachment.
+1. Open a generated proposal preview → click **Export PDF**.
+2. In the browser print dialog, choose **Save as PDF** (or Print).
+3. Confirm hub/activity shows `pdf_generated` with method `print`.
+
+**Steps (full Phase 5 — when server PDF + email ship)**
+
+1. Approved proposal → server PDF → download and/or email with attachment.
 2. Confirm `pdf_url` / storage and events `pdf_generated`, `email_sent`.
 3. Status → `sent` on successful email path.
 
-**Expect**
+**Expect (preview export)**
 
-- PDF readable; email uses client template fields; activity log complete.
+- Print dialog shows proposal document only (no app chrome).
+- Activity log includes export event.
 
-*Skip until Phase 5 ships.*
+*Server PDF / email may still be N/A until Phase 5 completes.*
 
 ---
 
@@ -340,10 +347,12 @@ Use this as the complete intake for TC-01 and as the starting point for regen te
 1. Generate (TC-01).
 2. Confirm landing on **full preview** before opening section editor.
 3. Hub primary action is Preview; Edit is secondary.
+4. Confirm **Export PDF** is available on the preview header when sections exist.
 
 **Expect**
 
 - Full composed document (header + all sections + sign-off) in proposal serif styling.
+- Export opens the browser print dialog (Save as PDF).
 
 ---
 

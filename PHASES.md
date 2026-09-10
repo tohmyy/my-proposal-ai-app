@@ -70,14 +70,15 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 
 ## Phase 5 — Preview, PDF, email, storage
 
-**Status:** Not started
+**Status:** Partial — preview print export shipped
 
-- [ ] `/proposals/[id]/preview` + `templates/koya_v1.css`
-- [ ] HTML → PDF; store in Supabase Storage; set `pdf_url`
+- [x] `/proposals/[id]/preview` with **Export PDF** (browser Print / Save as PDF + print CSS)
+- [x] Event `pdf_generated` with `meta.method: "print"` for evidence logging
+- [ ] Server HTML → PDF; store in Supabase Storage; set `pdf_url`
 - [ ] Resend email with PDF attachment (client email template)
-- [ ] Hub download PDF; events `pdf_generated`, `email_sent`, `failed`
+- [ ] Hub download of server-generated PDF; events `email_sent`, `failed`
 
-**Needs:** `RESEND_API_KEY`, storage bucket, PDF renderer decision from TDD
+**Needs (remaining):** `RESEND_API_KEY`, storage bucket, server PDF renderer (Playwright / Chromium) when replacing print fallback for email attachments
 
 **Exit:** Approve → PDF → email/download → `sent`; failures clear, content preserved.
 

@@ -129,3 +129,46 @@ body {
   font-weight: 700;
 }
 
+/* —— Print / Export PDF (preview) —— */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .koya-grain,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .proposal-document.print-root {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+  }
+
+  .proposal-document.print-root section {
+    break-inside: avoid;
+  }
+
+  .proposal-document.print-root button,
+  .proposal-document.print-root [data-inline-edit-chrome] {
+    display: none !important;
+  }
+}
+
+

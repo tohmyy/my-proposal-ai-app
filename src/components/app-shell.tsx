@@ -4,7 +4,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen">
       <div className="koya-grain pointer-events-none absolute inset-0" aria-hidden />
-      <header className="relative z-10 border-b border-[var(--koya-line)]/80 bg-[var(--koya-mist)]/80 backdrop-blur-sm">
+      <header className="no-print relative z-10 border-b border-[var(--koya-line)]/80 bg-[var(--koya-mist)]/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="group flex items-baseline gap-3">
             <span className="font-[family-name:var(--font-syne)] text-2xl font-bold tracking-tight text-[var(--koya-ink)]">

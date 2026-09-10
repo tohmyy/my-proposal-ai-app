@@ -5,6 +5,7 @@ import { listSections } from "@/lib/proposals/generate-actions";
 import { STATUS_LABELS } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ProposalDocument } from "@/components/proposal-document";
+import { ExportPdfButton } from "@/components/export-pdf-button";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function ProposalPreviewPage({
 
   return (
     <div className="space-y-8 animate-in-up">
-      <header className="flex flex-col gap-4 border-b border-[var(--koya-line)] pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <header className="no-print flex flex-col gap-4 border-b border-[var(--koya-line)] pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge
@@ -37,7 +38,8 @@ export default async function ProposalPreviewPage({
           </h1>
           <p className="max-w-xl text-[var(--koya-muted)]">
             Read the full draft as the client would see it. When you are ready,
-            open the section editor to revise specific parts.
+            open the section editor to revise specific parts — or export a PDF
+            via your browser&apos;s print dialog.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -48,12 +50,15 @@ export default async function ProposalPreviewPage({
             Back to hub
           </Link>
           {sections.length > 0 && (
-            <Link
-              href={`/proposals/${id}/edit`}
-              className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
-            >
-              Edit sections
-            </Link>
+            <>
+              <ExportPdfButton proposalId={id} title={proposal.title} />
+              <Link
+                href={`/proposals/${id}/edit`}
+                className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+              >
+                Edit sections
+              </Link>
+            </>
           )}
         </div>
       </header>

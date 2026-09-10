@@ -221,3 +221,23 @@ export async function listProposalEvents(proposalId: string) {
     .where(eq(proposalEvents.proposalId, proposalId))
     .orderBy(desc(proposalEvents.createdAt));
 }
+
+export async function logProposalExport(
+  proposalId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "pdf_generated",
+    message: "Proposal exported via browser Print / Save as PDF.",
+    meta: { method: "print" },
+  });
+
+  revalidatePath(`/proposals/${proposalId}`);
+  revalidatePath(`/proposals/${proposalId}/preview`);
+  return { ok: true };
+}
