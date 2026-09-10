@@ -134,7 +134,8 @@ export async function updateProposalIntake(id: string, formData: FormData) {
 
   revalidatePath("/");
   revalidatePath(`/proposals/${id}`);
-  redirect(`/proposals/${id}`);
+  revalidatePath(`/proposals/${id}/intake`);
+  redirect(`/proposals/${id}/intake`);
 }
 
 const HEADER_FIELDS = [

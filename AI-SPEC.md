@@ -246,6 +246,8 @@ Rewrite only the target section.
 - Leave other sections unchanged (byte-stable aside from unrelated edits).  
 - Event: `section_regenerated` with `meta.section_key`.
 
+**Implemented as** `regenerateSection` in `src/lib/ai/regenerate.ts`, called two ways with two different purposes: automatically in a batch by `regenerateAffectedSections` (§9.1, triggered from a banner on `/proposals/[id]/intake`) to resync sections with changed intake fields, with `meta.reason: "intake_update"`; and manually for one section on demand by `regenerateOneSection` (a "Regenerate" button on both `/preview` and `/edit`) to **reword/restructure** the section's current wording — not an intake resync — using a dedicated instruction (`REWORD_SECTION_INSTRUCTION`) and a higher sampling temperature, with `meta.reason: "manual"`. Neither path currently exposes the free-text `OPTIONAL_USER_INSTRUCTION` this section describes as UI.
+
 ---
 
 ## 9. Mapping intake → sections (guidance)

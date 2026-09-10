@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 3 core engine done (diff-driven selective regen). **Next:** manual per-section regen control on preview, then Phase 4 (status machine + approval gate).
+**Current:** Phase 3 complete. **Next:** Phase 4 (status machine + approval gate).
 
 ---
 
@@ -41,7 +41,7 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 
 ## Phase 3 — Section regeneration
 
-**Status:** Core engine done; manual per-section control still pending
+**Status:** Done
 
 **Plan:** [BUILD-PLAN-selective-intake-regen.md](./BUILD-PLAN-selective-intake-regen.md)
 
@@ -49,7 +49,7 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 - [x] Intake diff (against `last_generated_intake_snapshot`) → regenerate **only** mapped, non-hand-edited sections, confirmed via a hub-page banner before any AI call
 - [x] Replace only target `key`(s); other sections unchanged; sections a human has hand-edited are always skipped
 - [x] Event `section_regenerated` (`meta.sectionKey`, `meta.reason`)
-- [ ] Manual per-section regen control on preview (follow-up using the same `regenerateSection` API)
+- [x] Manual per-section **Regenerate** button on both `/proposals/[id]/preview` (inline editor) and `/proposals/[id]/edit` (`SectionEditor`) — `regenerateOneSection` in `src/lib/proposals/generate-actions.ts`, no status gate (same precedent as `saveSectionHtml`), `meta.reason: "manual"`
 
 **Exit:** PRD scenario 4 passes; intake edits don’t force a full regenerate.
 

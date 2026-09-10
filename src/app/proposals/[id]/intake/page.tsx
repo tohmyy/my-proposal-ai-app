@@ -4,7 +4,12 @@ import {
   listProposalEvents,
   updateProposalIntake,
 } from "@/lib/proposals/actions";
+import { listSections } from "@/lib/proposals/generate-actions";
+import { getStaleSections } from "@/lib/proposals/intake-section-map";
+import { SECTION_CATALOG } from "@/lib/ai/prompts";
 import { IntakeForm } from "@/components/intake-form";
+import { RegenerateSectionsButton } from "@/components/regenerate-sections-button";
+import { cn } from "@/lib/utils";
 import type { ClarificationGap } from "@/lib/proposals/types";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +23,10 @@ export default async function EditIntakePage({
   const proposal = await getProposal(id);
   if (!proposal) notFound();
 
-  const events = await listProposalEvents(id);
+  const [events, sections] = await Promise.all([
+    listProposalEvents(id),
+    listSections(id),
+  ]);
   const clarificationEvent =
     proposal.status === "needs_clarification"
       ? events.find((e) => e.type === "clarification_needed")
@@ -34,6 +42,10 @@ export default async function EditIntakePage({
 
   const clarificationGaps = meta?.gaps ?? [];
   const clarifyingQuestions = meta?.clarifyingQuestions ?? [];
+
+  const { toRegenerate, skippedHumanEdited } = getStaleSections(proposal, sections);
+  const sectionTitle = (key: string) =>
+    SECTION_CATALOG.find((s) => s.key === key)?.title ?? key;
 
   async function save(formData: FormData) {
     "use server";
@@ -53,6 +65,37 @@ export default async function EditIntakePage({
           {proposal.title || "Untitled proposal"}
         </p>
       </header>
+
+      {(toRegenerate.length > 0 || skippedHumanEdited.length > 0) && (
+        <div className="rounded-lg border border-[var(--koya-accent)]/40 bg-teal-50/70 px-4 py-3 text-sm text-[var(--koya-ink)]">
+          {toRegenerate.length > 0 && (
+            <>
+              <p className="font-semibold">
+                Intake changes affect {toRegenerate.length} section
+                {toRegenerate.length > 1 ? "s" : ""}
+              </p>
+              <p className="mt-1 text-[var(--koya-ink-soft)]">
+                {toRegenerate.map(sectionTitle).join(", ")}
+              </p>
+            </>
+          )}
+          {skippedHumanEdited.length > 0 && (
+            <p className={cn(toRegenerate.length > 0 ? "mt-1" : "", "text-[var(--koya-muted)]")}>
+              Skipping {skippedHumanEdited.length} section
+              {skippedHumanEdited.length > 1 ? "s" : ""} you&rsquo;ve edited
+              manually: {skippedHumanEdited.map(sectionTitle).join(", ")}
+              {toRegenerate.length === 0 &&
+                " — edit it yourself if it needs to reflect the change."}
+            </p>
+          )}
+          {toRegenerate.length > 0 && (
+            <div className="mt-3">
+              <RegenerateSectionsButton proposalId={id} />
+            </div>
+          )}
+        </div>
+      )}
+
       <IntakeForm
         action={save}
         initial={proposal}

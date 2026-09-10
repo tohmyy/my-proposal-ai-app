@@ -2,10 +2,11 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
-import { saveSectionHtml } from "@/lib/proposals/generate-actions";
+import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
 
 type Section = {
@@ -22,11 +23,13 @@ export function SectionEditor({
   proposalId: string;
   sections: Section[];
 }) {
+  const router = useRouter();
   const [activeKey, setActiveKey] = useState(sections[0]?.key ?? "");
   const active = sections.find((s) => s.key === activeKey) ?? sections[0];
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [regenerating, startRegenerateTransition] = useTransition();
 
   const editor = useEditor(
     {
@@ -62,6 +65,22 @@ export function SectionEditor({
         return;
       }
       setMessage(`Saved “${active.title}”.`);
+    });
+  }
+
+  function onRegenerate() {
+    if (!active) return;
+    setMessage(null);
+    setError(null);
+    startRegenerateTransition(async () => {
+      const result = await regenerateOneSection(proposalId, active.key);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
+      setMessage(`Regenerated “${result.title}”.`);
+      router.refresh();
     });
   }
 
@@ -104,7 +123,19 @@ export function SectionEditor({
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <SectionToolbar editor={editor} />
-            <Button type="button" onClick={onSave} disabled={pending || !editor}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onRegenerate}
+              disabled={pending || regenerating || !editor}
+            >
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </Button>
+            <Button
+              type="button"
+              onClick={onSave}
+              disabled={pending || regenerating || !editor}
+            >
               {pending ? "Saving…" : "Save section"}
             </Button>
           </div>

@@ -6,7 +6,7 @@ import { useEffect, useState, useTransition, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
 import { useInlineEditSlot } from "@/components/inline-edit-context";
-import { saveSectionHtml } from "@/lib/proposals/generate-actions";
+import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
 
 export function InlineSectionBody({
@@ -22,6 +22,7 @@ export function InlineSectionBody({
   const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLDivElement>(id);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [regenerating, startRegenerateTransition] = useTransition();
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -73,15 +74,43 @@ export function InlineSectionBody({
     });
   }
 
+  function regenerate() {
+    setError(null);
+    startRegenerateTransition(async () => {
+      const result = await regenerateOneSection(proposalId, section.key);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSavedHtml(result.htmlContent);
+      editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
+    });
+  }
+
   return (
     <div ref={ref} className="mt-4 space-y-3">
       {editing && (
         <div className="flex flex-wrap items-center gap-2">
           <SectionToolbar editor={editor} />
-          <Button type="button" size="sm" onClick={save} disabled={pending}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={regenerate}
+            disabled={pending || regenerating}
+          >
+            {regenerating ? "Regenerating…" : "Regenerate"}
+          </Button>
+          <Button type="button" size="sm" onClick={save} disabled={pending || regenerating}>
             {pending ? "Saving…" : "Save"}
           </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={cancel} disabled={pending}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={cancel}
+            disabled={pending || regenerating}
+          >
             Cancel
           </Button>
           {error && <span className="text-sm text-rose-700">{error}</span>}

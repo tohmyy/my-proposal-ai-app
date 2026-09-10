@@ -5,8 +5,6 @@ import {
   listProposalEvents,
 } from "@/lib/proposals/actions";
 import { listSections } from "@/lib/proposals/generate-actions";
-import { getStaleSections } from "@/lib/proposals/intake-section-map";
-import { SECTION_CATALOG } from "@/lib/ai/prompts";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
@@ -15,9 +13,7 @@ import {
 } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { GenerateButton } from "@/components/generate-button";
-import { RegenerateSectionsButton } from "@/components/regenerate-sections-button";
 import type { TimelinePhase } from "@/db/schema";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +43,6 @@ export default async function ProposalHubPage({
     | undefined;
 
   const canEdit = sections.length > 0;
-  const { toRegenerate, skippedHumanEdited } = getStaleSections(proposal, sections);
-  const sectionTitle = (key: string) =>
-    SECTION_CATALOG.find((s) => s.key === key)?.title ?? key;
 
   return (
     <div className="space-y-10 animate-in-up">
@@ -145,36 +138,6 @@ export default async function ProposalHubPage({
               <li key={key}>{HARD_FIELD_LABELS[key]}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {(toRegenerate.length > 0 || skippedHumanEdited.length > 0) && (
-        <div className="rounded-lg border border-[var(--koya-accent)]/40 bg-teal-50/70 px-4 py-3 text-sm text-[var(--koya-ink)]">
-          {toRegenerate.length > 0 && (
-            <>
-              <p className="font-semibold">
-                Intake changes affect {toRegenerate.length} section
-                {toRegenerate.length > 1 ? "s" : ""}
-              </p>
-              <p className="mt-1 text-[var(--koya-ink-soft)]">
-                {toRegenerate.map(sectionTitle).join(", ")}
-              </p>
-            </>
-          )}
-          {skippedHumanEdited.length > 0 && (
-            <p className={cn(toRegenerate.length > 0 ? "mt-1" : "", "text-[var(--koya-muted)]")}>
-              Skipping {skippedHumanEdited.length} section
-              {skippedHumanEdited.length > 1 ? "s" : ""} you&rsquo;ve edited
-              manually: {skippedHumanEdited.map(sectionTitle).join(", ")}
-              {toRegenerate.length === 0 &&
-                " — edit it yourself if it needs to reflect the change."}
-            </p>
-          )}
-          {toRegenerate.length > 0 && (
-            <div className="mt-3">
-              <RegenerateSectionsButton proposalId={id} />
-            </div>
-          )}
         </div>
       )}
 

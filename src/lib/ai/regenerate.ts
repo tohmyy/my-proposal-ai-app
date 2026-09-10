@@ -18,6 +18,7 @@ export async function regenerateSection(
   currentSections: { key: string; title: string; content: string }[],
   targetKey: string,
   instruction = "Update this section to reflect the latest intake changes.",
+  temperature = 0.3,
 ): Promise<RegenerateSectionResponse> {
   const client = getClient();
 
@@ -40,7 +41,7 @@ Call the submit_section tool with your result.`;
     message = await client.messages.create({
       model: getModel(),
       max_tokens: 2048,
-      temperature: 0.3,
+      temperature,
       system: REGENERATE_SECTION_SYSTEM_PROMPT,
       tools: [submitSectionTool],
       tool_choice: { type: "tool", name: "submit_section" },

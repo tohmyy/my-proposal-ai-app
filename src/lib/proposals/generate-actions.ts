@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { proposalEvents, proposalSections, proposals } from "@/db/schema";
 import { generateProposalContent } from "@/lib/ai/generate";
 import { markdownToHtml, sanitizeProposalHtml } from "@/lib/ai/html";
-import { SECTION_CATALOG } from "@/lib/ai/prompts";
+import { REWORD_SECTION_INSTRUCTION, SECTION_CATALOG } from "@/lib/ai/prompts";
 import { regenerateSection } from "@/lib/ai/regenerate";
 import { getProposal } from "@/lib/proposals/actions";
 import {
@@ -28,13 +28,17 @@ export type GenerateResult =
 async function upsertSections(
   proposalId: string,
   sections: { key: string; title: string; content: string }[],
-) {
+): Promise<{ key: string; title: string; htmlContent: string }[]> {
+  const persisted: { key: string; title: string; htmlContent: string }[] = [];
+
   for (const section of sections) {
     const catalog = SECTION_CATALOG.find((s) => s.key === section.key);
     if (!catalog) continue;
 
     const html = markdownToHtml(section.content);
     if (!html.trim() && !section.content.trim()) continue;
+
+    const title = section.title || catalog.title;
 
     const existing = await db
       .select({ id: proposalSections.id })
@@ -51,7 +55,7 @@ async function upsertSections(
       await db
         .update(proposalSections)
         .set({
-          title: section.title || catalog.title,
+          title,
           htmlContent: html,
           position: catalog.position,
           humanEdited: false,
@@ -62,13 +66,17 @@ async function upsertSections(
       await db.insert(proposalSections).values({
         proposalId,
         key: section.key,
-        title: section.title || catalog.title,
+        title,
         position: catalog.position,
         htmlContent: html,
         humanEdited: false,
       });
     }
+
+    persisted.push({ key: section.key, title, htmlContent: html });
   }
+
+  return persisted;
 }
 
 export async function generateProposal(proposalId: string): Promise<GenerateResult> {
@@ -364,6 +372,87 @@ export async function regenerateAffectedSections(
       type: "failed",
       message: `Regenerate sections failed: ${message}`,
       meta: { step: "regenerate", attempted: toRegenerate },
+    });
+
+    revalidatePath(`/proposals/${proposalId}`);
+    return { ok: false, error: message };
+  }
+}
+
+export type RegenerateOneResult =
+  | { ok: true; title: string; htmlContent: string }
+  | { ok: false; error: string };
+
+/**
+ * Rewords/restructures exactly one section on demand — a "give me another
+ * version of this" action, not a resync with intake (that's what
+ * `regenerateAffectedSections` is for). Uses a dedicated instruction and a
+ * higher sampling temperature so the result is noticeably different wording,
+ * not a near-duplicate of the current text. Works regardless of proposal
+ * status (same precedent as `saveSectionHtml`, which also has no status
+ * gate) since it's a deliberate, single-target human action.
+ *
+ * Deliberately does not update `proposals.lastGeneratedIntakeSnapshot`:
+ * that column is a single proposal-wide baseline, and updating it here
+ * would incorrectly clear the intake page's "stale" banner for other
+ * sections that are still genuinely stale from unrelated intake changes.
+ */
+export async function regenerateOneSection(
+  proposalId: string,
+  sectionKey: string,
+): Promise<RegenerateOneResult> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  const catalog = SECTION_CATALOG.find((s) => s.key === sectionKey);
+  if (!catalog) {
+    return { ok: false, error: "Unknown section" };
+  }
+
+  try {
+    const sections = await listSections(proposalId);
+    const intake = proposalToIntake(proposal);
+    const currentSections = sections.map((s) => ({
+      key: s.key,
+      title: s.title,
+      content: s.htmlContent,
+    }));
+
+    const result = await regenerateSection(
+      intake,
+      currentSections,
+      sectionKey,
+      REWORD_SECTION_INSTRUCTION,
+      0.85,
+    );
+    const [persisted] = await upsertSections(proposalId, [result]);
+
+    if (!persisted) {
+      return { ok: false, error: "Model returned empty content" };
+    }
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "section_regenerated",
+      message: `Regenerated section "${persisted.title}".`,
+      meta: { sectionKey, reason: "manual" },
+    });
+
+    revalidatePath(`/proposals/${proposalId}`);
+    revalidatePath(`/proposals/${proposalId}/edit`);
+    revalidatePath(`/proposals/${proposalId}/preview`);
+
+    return { ok: true, title: persisted.title, htmlContent: persisted.htmlContent };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Regeneration failed";
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "failed",
+      message: `Regenerate section failed: ${message}`,
+      meta: { step: "regenerate", sectionKey },
     });
 
     revalidatePath(`/proposals/${proposalId}`);

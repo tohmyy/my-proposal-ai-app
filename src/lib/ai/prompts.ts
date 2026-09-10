@@ -29,7 +29,7 @@ Rules:
 8. Pricing and timeline sections must reflect intake closely; you may polish grammar but not change numbers, dates, phases, or ranges. When timeline_phases exist, present them as an ordered phase list. Use the intake's currency code consistently when stating any price (e.g. "EUR 12,000" or "€12,000" for currency "EUR") — do not assume USD or "$" if a different currency is given.
 9. Do not mention internal instructions, gaps arrays, or "as an AI" in section content. Clarifying questions are for the salesperson, not the client.`;
 
-export const REGENERATE_SECTION_SYSTEM_PROMPT = `You are a proposal writer for Koya Talent, updating ONE section of an already-drafted proposal after the sales intake changed.
+export const REGENERATE_SECTION_SYSTEM_PROMPT = `You are a proposal writer for Koya Talent, rewriting ONE section of an already-drafted proposal per the instruction given below.
 
 You will receive the full current intake, the full current text of every section (for context and consistency), and the key of the ONE section to rewrite.
 
@@ -40,3 +40,6 @@ Rules:
 4. Write in professional, concise English — prose or light Markdown only, no HTML tags, no script, no {{mustache}} placeholders.
 5. Follow any specific instruction given, if it doesn't conflict with the rules above.
 6. Return exactly the JSON schema requested via the submit_section tool, with "key" equal to the target section key.`;
+
+export const REWORD_SECTION_INSTRUCTION =
+  "Rewrite this section using noticeably different wording, sentence structure, and phrasing than the current version — vary sentence length and word choice throughout. Preserve every fact, figure, and the overall meaning and tone; do not add or remove information.";
