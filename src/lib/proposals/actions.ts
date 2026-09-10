@@ -222,6 +222,100 @@ export async function listProposalEvents(proposalId: string) {
     .orderBy(desc(proposalEvents.createdAt));
 }
 
+function revalidateProposalPaths(proposalId: string) {
+  revalidatePath("/");
+  revalidatePath(`/proposals/${proposalId}`);
+  revalidatePath(`/proposals/${proposalId}/preview`);
+  revalidatePath(`/proposals/${proposalId}/edit`);
+  revalidatePath(`/proposals/${proposalId}/intake`);
+}
+
+export async function requestApproval(
+  proposalId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+  if (proposal.status !== "in_review") {
+    return { ok: false, error: "Proposal is not ready for approval" };
+  }
+
+  await db
+    .update(proposals)
+    .set({ status: "pending_approval", updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "approval_requested",
+    message: "Approval requested.",
+    meta: null,
+  });
+
+  revalidateProposalPaths(proposalId);
+  return { ok: true };
+}
+
+export async function approveProposal(
+  proposalId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+  if (proposal.status !== "pending_approval") {
+    return { ok: false, error: "Proposal is not pending approval" };
+  }
+
+  await db
+    .update(proposals)
+    .set({ status: "approved", updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "approved",
+    message: "Proposal approved.",
+    meta: null,
+  });
+
+  revalidateProposalPaths(proposalId);
+  return { ok: true };
+}
+
+export async function rejectProposal(
+  proposalId: string,
+  reason?: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+  if (proposal.status !== "pending_approval") {
+    return { ok: false, error: "Proposal is not pending approval" };
+  }
+
+  const trimmedReason = reason?.trim() || "";
+
+  await db
+    .update(proposals)
+    .set({ status: "in_review", updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  await db.insert(proposalEvents).values({
+    proposalId,
+    type: "rejected",
+    message: trimmedReason
+      ? `Changes requested: ${trimmedReason}`
+      : "Changes requested.",
+    meta: trimmedReason ? { reason: trimmedReason } : null,
+  });
+
+  revalidateProposalPaths(proposalId);
+  return { ok: true };
+}
+
 export async function logProposalExport(
   proposalId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {

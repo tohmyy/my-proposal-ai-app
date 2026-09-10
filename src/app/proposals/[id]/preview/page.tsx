@@ -6,6 +6,8 @@ import { STATUS_LABELS } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ProposalDocument } from "@/components/proposal-document";
 import { ExportPdfButton } from "@/components/export-pdf-button";
+import { RequestApprovalButton } from "@/components/request-approval-button";
+import { ApprovalReviewPanel } from "@/components/approval-review-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +60,17 @@ export default async function ProposalPreviewPage({
               >
                 Edit sections
               </Link>
+              {proposal.status === "in_review" && (
+                <RequestApprovalButton proposalId={id} />
+              )}
             </>
           )}
         </div>
       </header>
+
+      {proposal.status === "pending_approval" && (
+        <ApprovalReviewPanel proposalId={id} />
+      )}
 
       {sections.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--koya-line)] bg-white/50 px-6 py-16 text-center">

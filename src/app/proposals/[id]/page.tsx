@@ -43,6 +43,11 @@ export default async function ProposalHubPage({
     | undefined;
 
   const canEdit = sections.length > 0;
+  const latestEvent = events[0];
+  const rejectionMessage =
+    proposal.status === "in_review" && latestEvent?.type === "rejected"
+      ? latestEvent.message
+      : null;
 
   return (
     <div className="space-y-10 animate-in-up">
@@ -127,6 +132,13 @@ export default async function ProposalHubPage({
             , then generate again. Partial sections may already be editable if
             the model drafted them.
           </p>
+        </div>
+      )}
+
+      {rejectionMessage && (
+        <div className="rounded-lg border border-sky-300/80 bg-sky-50/90 px-4 py-3 text-sm text-sky-950">
+          <p className="font-semibold">Changes requested</p>
+          <p className="mt-1 text-sky-900/80">{rejectionMessage}</p>
         </div>
       )}
 

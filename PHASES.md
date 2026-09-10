@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 3 complete. **Next:** Phase 4 (status machine + approval gate).
+**Current:** Phase 4 complete. **Next:** finish Phase 5 (server PDF + email delivery).
 
 ---
 
@@ -57,12 +57,12 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 
 ## Phase 4 — Status machine + approval gate
 
-**Status:** Not started
+**Status:** Done
 
-- [ ] Request approval / approve / reject per TDD transitions
-- [ ] Approve surface (hub or `/proposals/[id]/approve`)
-- [ ] Block send/delivery unless `approved`
-- [ ] Events: `approval_requested`, `approved`, `rejected`
+- [x] Request approval / approve / reject per TDD transitions — `requestApproval`/`approveProposal`/`rejectProposal` in `src/lib/proposals/actions.ts`, each guarding on current status server-side
+- [x] Approve surface: `/proposals/[id]/preview` — `RequestApprovalButton` (header, when `in_review`) and `ApprovalReviewPanel` (Approve / Reject-with-optional-reason, when `pending_approval`)
+- [x] Block send/delivery unless `approved` — satisfied by the status machine itself; Phase 5's send action must check `status === "approved"` (no send/delivery UI exists yet to gate)
+- [x] Events: `approval_requested`, `approved`, `rejected` (`meta.reason` when a rejection reason is given); hub shows a "Changes requested" banner when back in `in_review` after the most recent event is a rejection
 
 **Exit:** Cannot send while `in_review`; can after approve (delivery in Phase 5).
 
