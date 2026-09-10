@@ -8,8 +8,9 @@ Read this before writing code. Specs win over improvisation.
 2. [TDD.md](./TDD.md) — architecture, status machine, data model, APIs  
 3. [AI-SPEC.md](./AI-SPEC.md) — Claude prompts, JSON contracts, guardrails  
 4. [PHASES.md](./PHASES.md) — what is done / what to build next  
-5. [DESIGN.md](./DESIGN.md) — Koya Ink visual system  
-6. [assets/](./assets/) — intake fields, proposal template, client email  
+5. Active build plans (e.g. [BUILD-PLAN-selective-intake-regen.md](./BUILD-PLAN-selective-intake-regen.md)) when implementing that slice  
+6. [DESIGN.md](./DESIGN.md) — Koya Ink visual system  
+7. [assets/](./assets/) — intake fields, proposal template, client email  
 
 Do **not** invent alternate stacks, status values, section keys, or AI response shapes.
 

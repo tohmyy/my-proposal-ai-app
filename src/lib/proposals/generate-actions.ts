@@ -7,7 +7,12 @@ import { proposalEvents, proposalSections, proposals } from "@/db/schema";
 import { generateProposalContent } from "@/lib/ai/generate";
 import { markdownToHtml, sanitizeProposalHtml } from "@/lib/ai/html";
 import { SECTION_CATALOG } from "@/lib/ai/prompts";
+import { regenerateSection } from "@/lib/ai/regenerate";
 import { getProposal } from "@/lib/proposals/actions";
+import {
+  getStaleSections,
+  type SectionKey,
+} from "@/lib/proposals/intake-section-map";
 import { proposalToIntake } from "@/lib/proposals/types";
 
 export type GenerateResult =
@@ -49,6 +54,7 @@ async function upsertSections(
           title: section.title || catalog.title,
           htmlContent: html,
           position: catalog.position,
+          humanEdited: false,
           updatedAt: new Date(),
         })
         .where(eq(proposalSections.id, existing[0].id));
@@ -59,6 +65,7 @@ async function upsertSections(
         title: section.title || catalog.title,
         position: catalog.position,
         htmlContent: html,
+        humanEdited: false,
       });
     }
   }
@@ -88,7 +95,12 @@ export async function generateProposal(proposalId: string): Promise<GenerateResu
 
     await db
       .update(proposals)
-      .set({ status: nextStatus, updatedAt: new Date() })
+      .set({
+        status: nextStatus,
+        lastGeneratedIntakeSnapshot:
+          result.sections.length > 0 ? intake : proposal.lastGeneratedIntakeSnapshot,
+        updatedAt: new Date(),
+      })
       .where(eq(proposals.id, proposalId));
 
     await db.insert(proposalEvents).values({
@@ -193,6 +205,7 @@ export async function saveSectionHtml(
     .update(proposalSections)
     .set({
       htmlContent: sanitized,
+      humanEdited: true,
       updatedAt: new Date(),
     })
     .where(eq(proposalSections.id, existing[0].id));
@@ -247,7 +260,7 @@ export async function saveSectionTitle(
 
   await db
     .update(proposalSections)
-    .set({ title: trimmed, updatedAt: new Date() })
+    .set({ title: trimmed, humanEdited: true, updatedAt: new Date() })
     .where(eq(proposalSections.id, existing[0].id));
 
   await db
@@ -266,4 +279,94 @@ export async function saveSectionTitle(
   revalidatePath(`/proposals/${proposalId}/edit`);
   revalidatePath(`/proposals/${proposalId}/preview`);
   return { ok: true };
+}
+
+export type RegenerateAffectedResult =
+  | { ok: true; regenerated: SectionKey[] }
+  | { ok: false; error: string };
+
+/**
+ * Re-validates staleness fresh (never trusts a client-side list) and
+ * regenerates each affected, non-human-edited section sequentially so later
+ * sections in the batch see earlier ones' fresh content.
+ */
+export async function regenerateAffectedSections(
+  proposalId: string,
+): Promise<RegenerateAffectedResult> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  const sections = await listSections(proposalId);
+  const { toRegenerate } = getStaleSections(proposal, sections);
+
+  if (toRegenerate.length === 0) {
+    return { ok: true, regenerated: [] };
+  }
+
+  await db
+    .update(proposals)
+    .set({ status: "generating", updatedAt: new Date() })
+    .where(eq(proposals.id, proposalId));
+
+  try {
+    const intake = proposalToIntake(proposal);
+    let currentSections = sections.map((s) => ({
+      key: s.key,
+      title: s.title,
+      content: s.htmlContent,
+    }));
+
+    for (const key of toRegenerate) {
+      const result = await regenerateSection(intake, currentSections, key);
+      await upsertSections(proposalId, [result]);
+
+      currentSections = currentSections.map((s) =>
+        s.key === key
+          ? { key: result.key, title: result.title, content: result.content }
+          : s,
+      );
+
+      await db.insert(proposalEvents).values({
+        proposalId,
+        type: "section_regenerated",
+        message: `Regenerated section "${result.title}" from intake changes.`,
+        meta: { sectionKey: key, reason: "intake_update" },
+      });
+    }
+
+    await db
+      .update(proposals)
+      .set({
+        status: "in_review",
+        lastGeneratedIntakeSnapshot: intake,
+        updatedAt: new Date(),
+      })
+      .where(eq(proposals.id, proposalId));
+
+    revalidatePath("/");
+    revalidatePath(`/proposals/${proposalId}`);
+    revalidatePath(`/proposals/${proposalId}/edit`);
+    revalidatePath(`/proposals/${proposalId}/preview`);
+
+    return { ok: true, regenerated: toRegenerate };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Regeneration failed";
+
+    await db
+      .update(proposals)
+      .set({ status: "in_review", updatedAt: new Date() })
+      .where(eq(proposals.id, proposalId));
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "failed",
+      message: `Regenerate sections failed: ${message}`,
+      meta: { step: "regenerate", attempted: toRegenerate },
+    });
+
+    revalidatePath(`/proposals/${proposalId}`);
+    return { ok: false, error: message };
+  }
 }

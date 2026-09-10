@@ -263,6 +263,10 @@ Rewrite only the target section.
 
 If `recommended_services` is empty but `project_scope` is rich, derive deliverables cautiously from scope **only** when clearly implied; otherwise ask for clarification rather than invent a service menu.
 
+### 9.1 Intake-diff → selective regen (app logic, implemented)
+
+When intake is edited on an `in_review` proposal, the app (not the model) diffs the current intake against `proposals.last_generated_intake_snapshot` — the intake state captured the last time sections were written — to find which fields actually changed. Each changed field maps to one or more sections via the table above (`currency` also maps to `pricing`; `client_name`/`company_name`/`date_of_call` join `salesperson_name`/`supporting_material` in mapping to **all** sections, since their influence isn't scoped to one place). The union of affected sections, minus any a human has hand-edited since generation (tracked per-section via `proposal_sections.human_edited`), becomes the regen candidate set shown to the user before any Claude call is made. See [BUILD-PLAN-selective-intake-regen.md](./BUILD-PLAN-selective-intake-regen.md) for the full implementation.
+
 ---
 
 ## 10. Guardrails and safety

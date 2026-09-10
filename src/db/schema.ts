@@ -6,6 +6,7 @@ import {
   integer,
   date,
   jsonb,
+  boolean,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -55,6 +56,9 @@ export const proposals = pgTable("proposals", {
   priceRange: text("price_range").notNull().default(""),
   pricingNotes: text("pricing_notes").notNull().default(""),
   supportingMaterial: text("supporting_material").notNull().default(""),
+  lastGeneratedIntakeSnapshot: jsonb("last_generated_intake_snapshot").$type<
+    Record<string, unknown>
+  >(),
   templateId: text("template_id").notNull().default("koya_v1"),
   pdfUrl: text("pdf_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -76,6 +80,7 @@ export const proposalSections = pgTable(
     title: text("title").notNull(),
     position: integer("position").notNull(),
     htmlContent: text("html_content").notNull().default(""),
+    humanEdited: boolean("human_edited").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -67,3 +67,27 @@ export const submitProposalTool = {
     required: ["status", "gaps", "clarifying_questions", "sections"],
   },
 };
+
+export const regenerateSectionResponseSchema = generateSectionSchema;
+
+export type RegenerateSectionResponse = z.infer<
+  typeof regenerateSectionResponseSchema
+>;
+
+/** Anthropic tool input schema for rewriting a single existing section. */
+export const submitSectionTool = {
+  name: "submit_section",
+  description: "Submit the rewritten content for a single proposal section.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      key: {
+        type: "string",
+        enum: [...SECTION_KEYS],
+      },
+      title: { type: "string" },
+      content: { type: "string" },
+    },
+    required: ["key", "title", "content"],
+  },
+};

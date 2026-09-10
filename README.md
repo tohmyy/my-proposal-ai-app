@@ -10,6 +10,11 @@ Week 3 proposal application: intake → Claude generate → human review → app
 | [TDD.md](./TDD.md) | Architecture, data model, APIs |
 | [AI-SPEC.md](./AI-SPEC.md) | Claude prompts, JSON contracts, guardrails |
 | [PHASES.md](./PHASES.md) | Build phases — **start here for “what next”** |
+| [BUILD-PLAN-selective-intake-regen.md](./BUILD-PLAN-selective-intake-regen.md) | Phase 3 plan: regen only sections affected by intake diffs |
+| [TEST-SCENARIOS.md](./TEST-SCENARIOS.md) | Manual QA cases + sample intake (Set A — Northline) |
+| [TEST-SCENARIOS-set-b.md](./TEST-SCENARIOS-set-b.md) | Same TCs — Set B Meridian Learning |
+| [TEST-SCENARIOS-set-c.md](./TEST-SCENARIOS-set-c.md) | Same TCs — Set C Harbor Pay |
+| [TEST-SCENARIOS-set-d.md](./TEST-SCENARIOS-set-d.md) | Same TCs — Set D Oak & Ember Hotels |
 | [DESIGN.md](./DESIGN.md) | Koya Ink visual system |
 | [AGENTS.md](./AGENTS.md) | Instructions for coding agents |
 | [assets/](./assets/) | Intake fields, proposal template, client email |

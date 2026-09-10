@@ -7,7 +7,7 @@ import {
   type GenerateResponse,
 } from "./schema";
 
-function getClient() {
+export function getClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -17,11 +17,11 @@ function getClient() {
   return new Anthropic({ apiKey });
 }
 
-function getModel() {
+export function getModel() {
   return process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 }
 
-function intakePayload(intake: IntakeInput) {
+export function intakePayload(intake: IntakeInput) {
   return {
     client_name: intake.clientName,
     client_email: intake.clientEmail,
@@ -46,7 +46,7 @@ function intakePayload(intake: IntakeInput) {
   };
 }
 
-function extractJsonFallback(text: string): unknown {
+export function extractJsonFallback(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced?.[1]?.trim() ?? text.trim();
   const start = candidate.indexOf("{");
