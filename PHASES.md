@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 5.6 complete (better-auth + sales/approver roles live, explicit scope expansion beyond the original PRD). **Next:** Phase 6 (hardening, evidence, deploy).
+**Current:** Phase 5.7 complete (AI intake extraction from call summary/document upload live, explicit scope expansion beyond the original PRD). **Next:** Phase 6 (hardening, evidence, deploy).
 
 ---
 
@@ -119,6 +119,24 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 **Needs:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `APPROVER_EMAILS` (see README); `npm run db:push` (or [`drizzle/0006_auth.sql`](./drizzle/0006_auth.sql)) to create the auth tables and `proposal_events.actor_email`.
 
 **Exit:** Every route requires sign-in except `/sign-in`, `/sign-up`, and the public client preview link; only an `approver` can approve/reject; approval events carry the actor's email.
+
+---
+
+## Phase 5.7 — AI intake extraction: call summary + document upload (explicit scope expansion, user-requested)
+
+**Status:** Done — not in the original PRD/TDD (AI-SPEC.md §1 listed "Intake capture: No"); added at the user's request
+
+- [x] "Fill from a call summary" panel (`src/components/intake-extraction-panel.tsx`) on both the new-proposal and edit-intake forms (`src/components/intake-form.tsx`, zero prop plumbing needed in either page) — paste raw call notes, or upload a PDF/`.txt`/`.md` document, and click **Extract with AI**
+- [x] New Claude tool-use call, fully separate from proposal generation: `submit_intake_extraction` tool + `intakeExtractionResponseSchema` (`src/lib/ai/schema.ts`), `EXTRACT_INTAKE_SYSTEM_PROMPT` (`src/lib/ai/prompts.ts`), `extractIntakeFromText`/`extractIntakeFromDocument` (`src/lib/ai/extract-intake.ts`) — every field optional, model must omit rather than guess, source text framed as untrusted/non-instructional (same guardrail language already used for `supportingMaterial`)
+- [x] PDF uploads go to Claude as a native `document` content block — confirmed against the installed `@anthropic-ai/sdk` types that this is stable, non-beta API, so no separate PDF-parsing dependency was needed; `.txt`/`.md` are decoded server-side and sent as plain text. `.docx` explicitly out of scope (user's choice) to avoid adding a parsing library
+- [x] Two new server actions (`src/lib/proposals/intake-extraction-actions.ts`, `extractIntakeFromSummary`/`extractIntakeFromFile`) make **zero database writes** — extraction only ever returns data for the client to apply to its own form state; nothing is persisted until the user saves through the existing `createProposal`/`updateProposalIntake` actions, unchanged
+- [x] Fill-blanks-only merge (`applyExtractedIntake` in `intake-form.tsx`): an extracted value only lands in a currently-empty field, so re-running extraction (e.g. from a follow-up call) can't clobber manually-entered data — safe to expose on both new and existing proposals with one merge rule and no confirm dialog
+- [x] If `supportingMaterial` is blank, it's backfilled with the source text/document name so it remains available to the actual proposal-generation call exactly like manually-typed supporting material already is
+- [x] No new `proposalEvents` type — extraction changes nothing about a proposal, so the existing `created`/`intake_updated` event (fired on the subsequent save) is the real audit trail
+
+**Needs:** No new env vars — reuses the existing `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`.
+
+**Exit:** Pasting a call summary or uploading a PDF/text document pre-fills the intake form's empty fields for review; the normal create/save → generate → review → approve flow continues completely unchanged afterward.
 
 ---
 

@@ -1,0 +1,12 @@
+spoke w/ Mina Torvald @ Driftline Media yesterday (sep 11 2026) — mina.t@driftline.media
+me: Sam Chen
+
+podcast ads trafficking is a mess — still emailing mp3s around.
+want: trafficking desk + creative approval + flight calendar tied to their ad-server CSV export
+
+goals kinda: fewer missed flights, faster creative turnaround, one place for talent approvals
+
+we floated: trafficking UI, approval workflow, calendar, CSV export, training workshop
+
+timeline "roughly 5 weeks" — no formal phases
+price somewhere $18k to $24k USD — soft. notes: depends how custom the ad-server columns are

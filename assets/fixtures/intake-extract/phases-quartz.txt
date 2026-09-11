@@ -1,0 +1,13 @@
+Client: Ellis Park, Quartz Dental Group (ellis.park@quartzdental.example)
+Salesperson: Riley Santos
+Call date: 2026-09-07
+
+Needs: Multi-location recall reminders still go out from each clinic's own Mailchimp with inconsistent copy.
+Scope: Central recall campaign tool with location templates, preference center, and weekly send report.
+
+Phased delivery (no overall "N weeks" summary stated):
+Phase 1 — Message & preference discovery — 10 days
+Phase 2 — Campaign builder + Mailchimp sync — 5 weeks
+Phase 3 — Reporting & rollout — 2 weeks
+
+Budget: CAD 51,000. Notes: excludes Mailchimp plan upgrades.

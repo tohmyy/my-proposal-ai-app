@@ -1,0 +1,30 @@
+Discovery call — 10 September 2026
+Salesperson: Devon Blake
+Client: Casey Nguyen (casey.nguyen@pinecrestsolar.com)
+Company: Pinecrest Solar
+
+Needs: Field crews still close jobs on paper. Office staff re-enter work orders into
+Salesforce overnight, so billing lags and warranty claims lack photos.
+
+Scope: Mobile field-close app with offline capture, photo attachments, and same-day
+sync into Salesforce Work Orders; supervisor dashboard for open vs closed jobs.
+
+Goals:
+- Same-day work-order close rate above 90%
+- Cut overnight data entry to near zero
+- Warranty packets include required photos automatically
+
+Recommended services / deliverables:
+- Field workflow discovery
+- iOS/Android close-out app (offline-first)
+- Salesforce Work Order sync
+- Supervisor dashboard
+- 3 weeks hypercare
+
+Timeline: 10 weeks from kickoff, including UAT and hypercare.
+Phases:
+1. Discovery & Salesforce mapping — 2 weeks
+2. App build + sync — 6 weeks
+3. UAT & hypercare — 2 weeks
+
+Pricing: USD 72,500 fixed. Notes: excludes Salesforce licenses; devices provided by client.

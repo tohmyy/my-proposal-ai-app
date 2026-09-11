@@ -1,0 +1,9 @@
+Ironbark Museums — contact Sloane Reed, sloane.reed@ironbark.museum
+Call 2026-09-06 with salesperson Chris Adeyemi.
+
+Problem: exhibition label translations are tracked in five spreadsheets; print deadlines slip.
+Scope: Translation request tracker + review workflow + export to InDesign-friendly CSV.
+
+Timeline summary: 9 weeks.
+Investment discussed as a range only: GBP 33,000 to 42,000.
+Notes: range depends on whether Arabic RTL proofing is in scope.

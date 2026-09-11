@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { StringListEditor } from "@/components/string-list-editor";
 import { TimelinePhasesEditor } from "@/components/timeline-phases-editor";
 import { RegenerateSectionsButton } from "@/components/regenerate-sections-button";
+import { IntakeExtractionPanel } from "@/components/intake-extraction-panel";
 import { useToast } from "@/components/ui/toast";
 import { regenerateAffectedSections } from "@/lib/proposals/generate-actions";
+import type { IntakeExtractionResponse } from "@/lib/ai/schema";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
@@ -178,6 +180,62 @@ export function IntakeForm({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  /**
+   * Fill-blanks-only merge: an extracted value only lands in a field that's
+   * currently empty, so re-running extraction on an already-filled form (or
+   * against a follow-up call) can't clobber existing manual edits.
+   */
+  function applyExtractedIntake(
+    data: IntakeExtractionResponse,
+    sourceText: string,
+  ) {
+    setValues((prev) => ({
+      ...prev,
+      clientName: prev.clientName || data.clientName || prev.clientName,
+      clientEmail: prev.clientEmail || data.clientEmail || prev.clientEmail,
+      companyName: prev.companyName || data.companyName || prev.companyName,
+      dateOfCall: prev.dateOfCall || data.dateOfCall || prev.dateOfCall,
+      salespersonName:
+        prev.salespersonName || data.salespersonName || prev.salespersonName,
+      clientNeedsSummary:
+        prev.clientNeedsSummary ||
+        data.clientNeedsSummary ||
+        prev.clientNeedsSummary,
+      projectScope: prev.projectScope || data.projectScope || prev.projectScope,
+      proposedTimeline:
+        prev.proposedTimeline || data.proposedTimeline || prev.proposedTimeline,
+      currency:
+        prev.currency === "USD" && data.currency ? data.currency : prev.currency,
+      proposedPrice:
+        prev.proposedPrice || data.proposedPrice || prev.proposedPrice,
+      priceRange: prev.priceRange || data.priceRange || prev.priceRange,
+      pricingNotes: prev.pricingNotes || data.pricingNotes || prev.pricingNotes,
+      supportingMaterial: prev.supportingMaterial || sourceText,
+    }));
+
+    if (!goals.some((g) => g.trim()) && data.goals?.length) {
+      setGoals(data.goals);
+    }
+    if (!services.some((s) => s.trim()) && data.recommendedServices?.length) {
+      setServices(data.recommendedServices);
+    }
+    if (
+      !timelinePhases.some(
+        (p) => p.label?.trim() || p.duration?.trim() || p.deliveryWindow?.trim(),
+      ) &&
+      data.timelinePhases?.length
+    ) {
+      setTimelinePhases(
+        data.timelinePhases.map((p, i) => ({
+          phase: p.phase ?? i + 1,
+          label: p.label ?? "",
+          duration: p.duration ?? "",
+          deliveryWindow: p.deliveryWindow ?? "",
+        })),
+      );
+    }
+  }
+
   async function onSubmit(formData: FormData) {
     setPending(true);
     try {
@@ -223,6 +281,8 @@ export function IntakeForm({
   return (
     <form action={onSubmit} className="space-y-10 animate-in-up">
       <IntakeFormActions {...actionsProps} />
+
+      <IntakeExtractionPanel onApply={applyExtractedIntake} />
 
       {hasClarification && (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-950">

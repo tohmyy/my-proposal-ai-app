@@ -14,7 +14,7 @@ Claude is used for **content generation only**. It does not approve proposals, s
 
 | Capability | AI involved? |
 | --- | --- |
-| Intake capture | No |
+| Intake capture | Yes — **extraction only**, added post-MVP by explicit user request; see §16. Never writes to the database directly; output only pre-fills the intake form for human review before save |
 | Full proposal generation | Yes |
 | Gap / clarification detection | Yes (plus app validation) |
 | Section regeneration | Yes |
@@ -350,7 +350,44 @@ Still owned by TDD (non-AI): PDF renderer on Vercel, ORM choice, DOCX stretch.
 
 ---
 
-## 16. References
+## 16. Intake extraction (call summary / document) — scope addition, user-requested
+
+Not in the original PRD/TDD (§1 listed "Intake capture: No" until this addition). Lets a user paste a raw call summary, or upload a PDF/plain-text document, and have Claude pre-fill the structured intake fields instead of typing every field by hand. **Fully separate from proposal generation** (§4–§9): different tool, different system prompt, and — critically — **no database write of any kind**. The result only pre-fills the same client-side intake form state a human would otherwise type into; nothing is persisted until the user explicitly saves via the existing `createProposal`/`updateProposalIntake` actions, so this doesn't weaken "human in control."
+
+### Contract
+
+Tool: `submit_intake_extraction` (`src/lib/ai/schema.ts`). Every intake-like field is **optional** in the response — an absent key means "not stated in the source," which must be distinguished from an explicitly-found empty value. A `notFound: string[]` array names fields the model looked for but could not find.
+
+```json
+{
+  "clientName": "Jordan Ruiz",
+  "clientNeedsSummary": "Needs a faster hiring pipeline for support roles.",
+  "goals": ["Cut time-to-hire", "Improve candidate quality"],
+  "notFound": ["proposedPrice", "priceRange", "proposedTimeline"]
+}
+```
+
+### Guardrails (extends §10)
+
+- **Omit, never guess** — the model must not fill an unmentioned field with `""` or an invented value; the app-level Zod schema makes every field `.optional()` to make this the only valid way to represent "not found."
+- **Untrusted source, not instructions** — same framing as `supporting_material` (§10): a pasted call summary or uploaded document may contain requests or instructions from a client or salesperson; the model must ignore them and extract only factual content.
+- No currency/unit conversion — numbers and currencies are extracted verbatim, not normalized or converted.
+- `dateOfCall` must be ISO (`YYYY-MM-DD`) and included only when explicitly or unambiguously stated.
+
+### Inputs
+
+- **Pasted text**: sent as a plain user message (`extractIntakeFromText`, `src/lib/ai/extract-intake.ts`).
+- **Uploaded document**: PDF or plain text/Markdown only (confirmed with the user — no `.docx`, to avoid a new parsing dependency). PDFs are sent to Claude as a native `document` content block (`extractIntakeFromDocument`) — confirmed against the installed `@anthropic-ai/sdk` types that this is part of the stable, non-beta API, not a separate ingestion pipeline. Text/Markdown files are decoded server-side and sent the same way as pasted text.
+
+### App behavior (not the model)
+
+1. No `proposalEvents` row is written for an extraction call — it changes nothing about any proposal; the real, already-existing event (`created` / `intake_updated`) fires when the user subsequently saves.
+2. The intake form applies the result with a **fill-blanks-only merge**: an extracted value only lands in a field that's currently empty, so this is safe to run repeatedly (e.g. a follow-up call) without overwriting already-entered data.
+3. If `supportingMaterial` is blank, it's backfilled with the original pasted/extracted text so it remains available to the actual proposal-generation call (§3.2) exactly as if the user had typed it there themselves.
+
+---
+
+## 17. References
 
 - [PRD.md](./PRD.md) — product requirements and test scenarios  
 - [TDD.md](./TDD.md) — architecture, status machine, data model  

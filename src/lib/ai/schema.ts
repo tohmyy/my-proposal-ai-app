@@ -91,3 +91,86 @@ export const submitSectionTool = {
     required: ["key", "title", "content"],
   },
 };
+
+const timelinePhaseExtractionSchema = z.object({
+  phase: z.number().int().positive().optional(),
+  label: z.string().trim().optional(),
+  duration: z.string().trim().optional(),
+  deliveryWindow: z.string().trim().optional(),
+});
+
+/**
+ * Every intake-like field is optional: an absent key means "not stated in
+ * the source," distinct from an explicitly-found empty value. Never treat
+ * a missing key as a signal to guess — see EXTRACT_INTAKE_SYSTEM_PROMPT.
+ */
+export const intakeExtractionResponseSchema = z.object({
+  clientName: z.string().trim().optional(),
+  clientEmail: z.string().trim().optional(),
+  companyName: z.string().trim().optional(),
+  dateOfCall: z.string().trim().optional(),
+  salespersonName: z.string().trim().optional(),
+  clientNeedsSummary: z.string().trim().optional(),
+  projectScope: z.string().trim().optional(),
+  goals: z.array(z.string().trim()).optional(),
+  recommendedServices: z.array(z.string().trim()).optional(),
+  proposedTimeline: z.string().trim().optional(),
+  timelinePhases: z.array(timelinePhaseExtractionSchema).optional(),
+  currency: z.string().trim().optional(),
+  proposedPrice: z.string().trim().optional(),
+  priceRange: z.string().trim().optional(),
+  pricingNotes: z.string().trim().optional(),
+  notFound: z.array(z.string()).default([]),
+});
+
+export type IntakeExtractionResponse = z.infer<
+  typeof intakeExtractionResponseSchema
+>;
+
+/** Anthropic tool input schema for extracting intake fields from free text or a document. */
+export const submitIntakeExtractionTool = {
+  name: "submit_intake_extraction",
+  description:
+    "Submit intake fields extracted from a call summary or document. Omit any field not explicitly stated in the source — never guess or invent a value.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      clientName: { type: "string" },
+      clientEmail: { type: "string" },
+      companyName: { type: "string" },
+      dateOfCall: {
+        type: "string",
+        description:
+          "ISO date YYYY-MM-DD, only if a specific date is explicitly stated",
+      },
+      salespersonName: { type: "string" },
+      clientNeedsSummary: { type: "string" },
+      projectScope: { type: "string" },
+      goals: { type: "array", items: { type: "string" } },
+      recommendedServices: { type: "array", items: { type: "string" } },
+      proposedTimeline: { type: "string" },
+      timelinePhases: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            phase: { type: "number" },
+            label: { type: "string" },
+            duration: { type: "string" },
+            deliveryWindow: { type: "string" },
+          },
+        },
+      },
+      currency: { type: "string" },
+      proposedPrice: { type: "string" },
+      priceRange: { type: "string" },
+      pricingNotes: { type: "string" },
+      notFound: {
+        type: "array",
+        items: { type: "string" },
+        description: "Names of intake fields you could not find in the source",
+      },
+    },
+    required: ["notFound"],
+  },
+};

@@ -12,8 +12,9 @@ Concrete cases for manual QA and submission evidence. Mapped to [PRD.md](./PRD.m
 | B | [TEST-SCENARIOS-set-b.md](./TEST-SCENARIOS-set-b.md) | EdTech — Meridian Learning |
 | C | [TEST-SCENARIOS-set-c.md](./TEST-SCENARIOS-set-c.md) | Fintech — Harbor Pay |
 | D | [TEST-SCENARIOS-set-d.md](./TEST-SCENARIOS-set-d.md) | Hospitality — Oak & Ember Hotels |
+| Extract | [TEST-SCENARIOS-intake-extract.md](./TEST-SCENARIOS-intake-extract.md) | **Fill from a call summary** — paste / PDF / txt / md |
 
-Use evidence ID prefixes `TC-*` (A), `B-TC-*`, `C-TC-*`, `D-TC-*` so runs don’t collide.
+Use evidence ID prefixes `TC-*` (A), `B-TC-*`, `C-TC-*`, `D-TC-*`, `EX-*` (intake extract) so runs don’t collide.
 
 ---
 

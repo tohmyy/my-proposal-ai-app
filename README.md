@@ -37,6 +37,8 @@ See [PHASES.md](./PHASES.md). Phases 1–5.5 are done; **Phase 6** is next (hard
 
 Run `npm run db:push` (or [`drizzle/0006_auth.sql`](./drizzle/0006_auth.sql)) to create the new `user`/`session`/`account`/`verification` tables and the `proposal_events.actor_email` column.
 
+**AI intake extraction (added by user request):** on the new-proposal and edit-intake forms, open **"Fill from a call summary"** to paste raw call notes or upload a PDF/`.txt`/`.md` document — Claude extracts whatever intake fields it can find (client name, needs, scope, goals, timeline, pricing, etc.) and pre-fills the empty fields in the form for you to review before saving; fields it can't find are left blank rather than guessed. Nothing is written to the database until you save normally — this only pre-fills the same form you'd otherwise type into by hand, and it never overwrites a field you've already filled in. No new env vars — it reuses `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`. `.docx` uploads aren't supported (PDF and plain text/Markdown only).
+
 ## Setup
 
 1. Create a Supabase project.

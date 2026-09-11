@@ -1,0 +1,11 @@
+Call with Harper Singh, Lumen Grid Analytics.
+Email: harper.singh@lumengrid.io
+Date: 2026-09-11
+Sales: Devon Blake
+
+They need a cleaner way for analysts to request data extracts from the warehouse.
+Scope discussed: request form + approval workflow + scheduled delivery to S3 — tooling choice not final.
+
+Goals mentioned: fewer Slack DMs to the data team, clearer audit of who got what.
+
+No timeline agreed. No budget shared on this call.
