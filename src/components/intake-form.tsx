@@ -14,6 +14,7 @@ import { regenerateAffectedSections } from "@/lib/proposals/generate-actions";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
+  localTodayIsoDate,
   mapClarificationGapsToControls,
   type ClarificationGap,
   type HardIntakeField,
@@ -373,6 +374,7 @@ export function IntakeForm({
             type="date"
             value={values.dateOfCall}
             onChange={(v) => setField("dateOfCall", v)}
+            max={localTodayIsoDate()}
             errorNote={fieldErrors.dateOfCall}
           />
         </div>
@@ -658,6 +660,7 @@ function Field({
   placeholder,
   errorNote,
   invalid,
+  max,
 }: {
   id: string;
   label: string;
@@ -669,6 +672,7 @@ function Field({
   placeholder?: string;
   errorNote?: string;
   invalid?: boolean;
+  max?: string;
 }) {
   const showError = Boolean(errorNote || invalid);
   return (
@@ -691,6 +695,7 @@ function Field({
         name={id}
         type={type}
         value={value}
+        max={max}
         placeholder={placeholder}
         aria-invalid={showError}
         onChange={(e) => onChange(e.target.value)}

@@ -9,7 +9,7 @@ Adapted from the original reference form for structured generation. Original: ht
 | Client Name | `client_name` | text | Name of the client contact. |
 | Client Email | `client_email` | text | Email address for client delivery. |
 | Company Name | `company_name` | text | Client company or organization. |
-| Date of Call | `date_of_call` | date | Date the sales or discovery call happened. |
+| Date of Call | `date_of_call` | date | Date the sales or discovery call happened. Must be today or earlier. |
 | Salesperson Name | `salesperson_name` | text | Person preparing or owning the proposal. |
 | Summary of Client's Needs | `client_needs_summary` | text | The problem the client wants to solve. **Hard** |
 | Project Scope | `project_scope` | text | What the client wants built or delivered. **Hard** |

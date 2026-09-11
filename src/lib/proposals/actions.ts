@@ -18,6 +18,7 @@ import { getSettings } from "@/lib/settings/actions";
 import {
   displayTitle,
   getMissingHardFields,
+  isValidDateOfCall,
   parseIntakeFormData,
 } from "@/lib/proposals/types";
 import { normalizeTemplateId } from "@/lib/proposals/templates";
@@ -185,8 +186,13 @@ export async function saveProposalHeaderField(
 
   const trimmed = value.trim();
 
-  if (field === "dateOfCall" && trimmed && !/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return { ok: false, error: "Invalid date" };
+  if (field === "dateOfCall" && trimmed) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return { ok: false, error: "Invalid date" };
+    }
+    if (!isValidDateOfCall(trimmed)) {
+      return { ok: false, error: "Date of call cannot be in the future" };
+    }
   }
 
   const nextValues = {

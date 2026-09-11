@@ -13,6 +13,27 @@ export function displayTitle(input: {
   return "Untitled proposal";
 }
 
+/** Local calendar date as `YYYY-MM-DD` (for date inputs / comparisons). */
+export function localTodayIsoDate(now = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Empty/null OK; otherwise must be YYYY-MM-DD and not after today (local). */
+export function isValidDateOfCall(
+  value: string | null | undefined,
+  today = localTodayIsoDate(),
+): boolean {
+  if (value == null || !String(value).trim()) return true;
+  const trimmed = String(value).trim();
+  if (!ISO_DATE_RE.test(trimmed)) return false;
+  return trimmed <= today;
+}
+
 export const timelinePhaseSchema = z.object({
   phase: z.number().int().positive(),
   label: z.string().trim().optional().default(""),
@@ -27,7 +48,15 @@ export const intakeSchema = z.object({
     z.string().trim().email("Enter a valid email"),
   ]),
   companyName: z.string().trim().default(""),
-  dateOfCall: z.string().trim().optional().nullable(),
+  dateOfCall: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine(
+      (v) => isValidDateOfCall(v),
+      { message: "Date of call cannot be in the future" },
+    ),
   salespersonName: z.string().trim().default(""),
   clientNeedsSummary: z.string().trim().default(""),
   projectScope: z.string().trim().default(""),

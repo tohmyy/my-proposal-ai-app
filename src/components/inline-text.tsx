@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useInlineEditSlot } from "@/components/inline-edit-context";
+import { localTodayIsoDate } from "@/lib/proposals/types";
 import { cn } from "@/lib/utils";
 
 function formatDateDisplay(value: string) {
@@ -72,6 +73,7 @@ export function InlineText({
           autoFocus
           type={type}
           value={draft}
+          max={type === "date" ? localTodayIsoDate() : undefined}
           placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
