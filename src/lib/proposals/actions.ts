@@ -13,6 +13,7 @@ import {
   type Settings,
 } from "@/db/schema";
 import { getAppBaseUrl } from "@/lib/app-url";
+import { getCurrentUser } from "@/lib/auth";
 import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
 import { getSettings } from "@/lib/settings/actions";
 import {
@@ -261,6 +262,11 @@ function revalidateProposalPaths(proposalId: string) {
 export async function requestApproval(
   proposalId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Sign in required." };
+  }
+
   const proposal = await getProposal(proposalId);
   if (!proposal) {
     return { ok: false, error: "Proposal not found" };
@@ -279,6 +285,7 @@ export async function requestApproval(
     type: "approval_requested",
     message: "Approval requested.",
     meta: null,
+    actorEmail: user.email,
   });
 
   revalidateProposalPaths(proposalId);
@@ -288,6 +295,14 @@ export async function requestApproval(
 export async function approveProposal(
   proposalId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Sign in required." };
+  }
+  if (user.role !== "approver") {
+    return { ok: false, error: "Only an approver can do this." };
+  }
+
   const proposal = await getProposal(proposalId);
   if (!proposal) {
     return { ok: false, error: "Proposal not found" };
@@ -306,6 +321,7 @@ export async function approveProposal(
     type: "approved",
     message: "Proposal approved.",
     meta: null,
+    actorEmail: user.email,
   });
 
   revalidateProposalPaths(proposalId);
@@ -316,6 +332,14 @@ export async function rejectProposal(
   proposalId: string,
   reason?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Sign in required." };
+  }
+  if (user.role !== "approver") {
+    return { ok: false, error: "Only an approver can do this." };
+  }
+
   const proposal = await getProposal(proposalId);
   if (!proposal) {
     return { ok: false, error: "Proposal not found" };
@@ -338,6 +362,7 @@ export async function rejectProposal(
       ? `Changes requested: ${trimmedReason}`
       : "Changes requested.",
     meta: trimmedReason ? { reason: trimmedReason } : null,
+    actorEmail: user.email,
   });
 
   revalidateProposalPaths(proposalId);

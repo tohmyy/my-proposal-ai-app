@@ -116,8 +116,8 @@ Allowed transitions (MVP):
 | AI | Anthropic Claude API (`@anthropic-ai/sdk`) | Required by PRD |
 | DB | Postgres via **Supabase** | Proposals, sections, events |
 | ORM | Prisma or Drizzle `[OPEN]` | Prefer whichever the implementer knows |
-| Auth | **None for MVP** | Wire **Supabase Auth** later via `.env` when ready (see §9) |
-| Approval | **Anyone** | No salesperson vs approver split; Approve is an open action |
+| Auth | **better-auth** (email+password, Drizzle-backed — added post-MVP, user-requested, see §9 and PHASES.md Phase 5.6) | Chosen over Supabase Auth: all DB access already goes through Drizzle directly, so better-auth's own `user`/`session` tables live in the same schema/db instead of a second, disconnected auth system |
+| Approval | **`approver` role only** (added post-MVP, see §9) | `sales` vs `approver` split via `user.role`, assigned at signup from an `APPROVER_EMAILS` allowlist; a `sales` user can request approval but not approve/reject |
 | Documents | HTML + shared CSS → PDF | Prefer pixel consistency editor ↔ PDF |
 | Email | Resend | Client delivery; **prefer PDF attachment** (also support link + download) |
 | Files | **Supabase Storage** | Generated PDFs (see §4.1 — not ImageKit) |
@@ -274,6 +274,7 @@ Unique `(proposal_id, key)`.
 | `type` | text | `generated`, `section_saved`, `section_regenerated`, `clarification_needed`, `approval_requested`, `approved`, `rejected`, `pdf_generated`, `email_sent`, `failed` |
 | `message` | text | Human-readable; enough to debug |
 | `meta` | jsonb nullable | Error codes, section key, provider ids |
+| `actor_email` | text nullable | Who performed the action — only populated for `approval_requested`/`approved`/`rejected` (added with auth, Phase 5.6); null for every other event type |
 | `created_at` | timestamptz | |
 
 Logging for PRD scenario 6–7 is primarily this table plus visible UI errors.
@@ -344,7 +345,9 @@ Implement as Next.js Route Handlers or Server Actions. Conceptual endpoints:
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser / client Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only DB/storage |
-| Supabase Auth vars | Added later when auth is enabled — app coded so auth can be switched on without redesign |
+| `BETTER_AUTH_SECRET` | better-auth session/cookie signing |
+| `BETTER_AUTH_URL` | better-auth base URL (does not read `NEXT_PUBLIC_APP_URL`) |
+| `APPROVER_EMAILS` | Comma-separated emails auto-assigned the `approver` role at signup |
 
 ---
 
@@ -354,8 +357,8 @@ Implement as Next.js Route Handlers or Server Actions. Conceptual endpoints:
 - Sanitize all HTML on write
 - Never send to client without `approved`
 - Rate-limit generate/regen in demo if easy (optional)
-- **Auth MVP:** none — public demo URL is writable; acceptable for class/demo risk profile
-- **Auth later:** Supabase Auth via `.env`; keep data access behind server routes so adding session checks is localized
+- **Auth (added post-MVP, user-requested — see PHASES.md Phase 5.6):** better-auth email+password; every route requires sign-in except `/sign-in`, `/sign-up`, and the public client-facing `/proposals/[id]/preview` link. A fast cookie-presence redirect (`src/proxy.ts`) covers UX; the real boundary is independent `auth.api.getSession()` checks inside `requestApproval`/`approveProposal`/`rejectProposal` and inside the preview page itself, per Next's own guidance not to rely on the proxy/middleware layer alone for authorization
+- **Approval role:** only `user.role === "approver"` can approve/reject a `pending_approval` proposal; role is assigned once at signup from the `APPROVER_EMAILS` allowlist and cannot be self-selected (`additionalFields.role` has `input: false`)
 - Supabase Storage: private bucket for PDFs; serve via signed URLs or server-proxied download/email attach
 
 ---
@@ -378,8 +381,8 @@ UI must show:
 
 | Topic | Decision |
 | --- | --- |
-| Auth (MVP) | No auth; prepare for Supabase Auth via env later |
-| Who can approve | Anyone (no separate role) |
+| Auth | **better-auth** email+password, Drizzle-backed (added post-MVP, 2026-09-11, user-requested) — see §9, PHASES.md Phase 5.6 |
+| Who can approve | Only `user.role === "approver"`; role assigned at signup via `APPROVER_EMAILS` allowlist, not self-selectable |
 | Client delivery | Email primary; prefer **PDF attachment**; also link + in-app download; always previewed (with optional CC/BCC and light edits) before sending — see §11 item 7 |
 | Database | Supabase (Postgres) |
 | File storage | **Supabase Storage** (not ImageKit for MVP) |
@@ -393,6 +396,7 @@ UI must show:
 5. **DOCX export** — out of MVP vs stretch.  
 6. **Exact Claude model** — model id for cost/quality.
 7. ~~**Sender identity + email preview** — not in the original PRD; added by explicit user request (2026-09-11).~~ **Resolved:** a global singleton `settings` row (no auth, matching the app's no-auth posture) holds sender company name, designation, logo, "From" email, and an email salutation template, editable at `/settings`. These now drive the proposal document's header/footer (replacing a previously hardcoded `"Koya Talent"` in three places) and the client email's greeting/sign-off. Sending is no longer immediate: `SendEmailButton` opens a preview dialog (first modal in the app, a thin wrapper around the native `<dialog>` element — no new dependency) showing the actual subject/body that would be sent, with optional CC/BCC and light plain-text edits, before the user explicitly confirms. Scoped deliberately: plain text only (no HTML email body), and the app's own top-nav branding is untouched — only the proposal document and outgoing email read from settings.
+8. ~~**Auth + approver role** — not in the original PRD ("Auth: None for MVP"); added by explicit user request (2026-09-11).~~ **Resolved:** better-auth (email+password, Drizzle-backed, chosen over Supabase Auth since all DB access already goes through Drizzle directly) gates every route except `/sign-in`, `/sign-up`, and the public client-facing `/proposals/[id]/preview` link. `user.role` (`sales`/`approver`) is decided once at signup from the `APPROVER_EMAILS` env allowlist, not self-selectable. Only an `approver` can approve/reject a `pending_approval` proposal — enforced inside `approveProposal`/`rejectProposal` themselves, not just in the UI — while a `sales` user sees a "waiting for approval from a higher-up" message. `proposalEvents.actorEmail` records who requested/approved/rejected. Scoped deliberately: no OAuth, no password reset/email verification, no admin role-management UI, no route-group restructuring, and no auth/role checks added to the ~20 other existing Server Actions beyond the approval trio.
 
 ---
 

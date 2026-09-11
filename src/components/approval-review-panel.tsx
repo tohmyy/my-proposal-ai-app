@@ -7,7 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { approveProposal, rejectProposal } from "@/lib/proposals/actions";
 
-export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
+export function ApprovalReviewPanel({
+  proposalId,
+  canApprove,
+}: {
+  proposalId: string;
+  canApprove: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [rejecting, setRejecting] = useState(false);
@@ -45,7 +51,11 @@ export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
         Review the proposal above, then approve it or send it back for changes.
       </p>
 
-      {!rejecting ? (
+      {!canApprove ? (
+        <p className="mt-3 text-sky-900/80">
+          Waiting for approval from a higher-up.
+        </p>
+      ) : !rejecting ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button type="button" onClick={onApprove} disabled={pending}>
             {pending ? "Approving…" : "Approve"}

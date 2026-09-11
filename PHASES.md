@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 5.5 complete (sender-identity settings + email preview/CC/BCC live, explicit scope expansion beyond the original PRD). **Next:** Phase 6 (hardening, evidence, deploy).
+**Current:** Phase 5.6 complete (better-auth + sales/approver roles live, explicit scope expansion beyond the original PRD). **Next:** Phase 6 (hardening, evidence, deploy).
 
 ---
 
@@ -100,6 +100,25 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 - [x] Explicitly out of scope (user's choice): plain-text body only (no rich/HTML editor, no Resend `html` field); the app's own top-nav wordmark is untouched by sender-identity settings — only the proposal document and outgoing email read from it
 
 **Exit:** `/settings` configures sender identity; proposal document and client email reflect it; "Send to client" always previews real content first, supports CC/BCC and light edits, and only actually sends on explicit confirmation.
+
+---
+
+## Phase 5.6 — Auth + sales/approver roles (explicit scope expansion, user-requested)
+
+**Status:** Done — not in the original PRD/TDD ("Auth: None for MVP"); added at the user's request
+
+- [x] [better-auth](https://www.better-auth.com/) (`src/lib/auth.ts`), Drizzle-backed via the existing `db` export — `user`/`session`/`account`/`verification` tables in `src/db/schema.ts`, email+password sign-up/sign-in, no OAuth providers, no password reset/email verification flow
+- [x] `user.role` (`"sales" | "approver"`, `additionalFields`, `input: false` so it can never be self-assigned) — decided at signup by a `databaseHooks.user.create.before` hook matching the new user's email against the `APPROVER_EMAILS` env allowlist; no admin UI for changing roles. Defaulted at both the better-auth level and the DB column level (`.default("sales")`) since the Drizzle adapter has a known bug (better-auth#2674) around applying `additionalFields.defaultValue`
+- [x] `src/proxy.ts` (this Next.js version's `middleware.ts` replacement — see AGENTS.md's Next-version warning) redirects to `/sign-in` for every route without a session cookie, except `/sign-in`, `/sign-up`, `/api/auth/*`, and any `/proposals/[id]/preview` path — a fast, cookie-*presence*-only UX layer, not the real security boundary
+- [x] The real security boundary is independent `auth.api.getSession()` checks inside the code that matters: `requestApproval` (any signed-in user), `approveProposal`/`rejectProposal` (signed in **and** `role === "approver"`), and `/proposals/[id]/preview` itself (excluded from the proxy redirect on purpose, since it's the link `sendProposalEmail` sends to real clients — it decides for itself whether a visitor is anonymous or staff)
+- [x] On `/proposals/[id]/preview`: an anonymous visitor always sees the static, read-only document (`editable={!isPrintCapture && Boolean(user)}`) with no "Back to hub"/"Edit sections"/approval controls, regardless of `?print=1` or proposal status; a signed-in `sales` user sees a "waiting for approval from a higher-up" message in place of Approve/Reject; a signed-in `approver` sees and can use the real controls (`ApprovalReviewPanel`'s new `canApprove` prop)
+- [x] `proposalEvents.actorEmail` (nullable) populated on `approval_requested`/`approved`/`rejected` only — not retrofitted onto other event types or onto `proposals` ownership
+- [x] `AppShell` (now an async Server Component) shows "Sign in"/"Create account" links when signed out, or the user's email + role badge + sign-out button when signed in
+- [x] Explicitly out of scope (proportionate for "simple auth", not a silent gap): no route-group restructuring (`src/app/(protected)/...`); the other ~20 existing Server Actions (create/generate/save/settings/etc.) rely on the proxy redirect only, same as this app's prior no-auth posture for everything
+
+**Needs:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `APPROVER_EMAILS` (see README); `npm run db:push` (or [`drizzle/0006_auth.sql`](./drizzle/0006_auth.sql)) to create the auth tables and `proposal_events.actor_email`.
+
+**Exit:** Every route requires sign-in except `/sign-in`, `/sign-up`, and the public client preview link; only an `approver` can approve/reject; approval events carry the actor's email.
 
 ---
 

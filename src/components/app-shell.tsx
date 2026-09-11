@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ToastProvider } from "@/components/ui/toast";
+import { SignOutButton } from "@/components/sign-out-button";
+import { getCurrentUser } from "@/lib/auth";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export async function AppShell({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
+
   return (
     <div className="relative min-h-screen">
       <div className="koya-grain pointer-events-none absolute inset-0" aria-hidden />
@@ -16,24 +20,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
-            >
-              All proposals
-            </Link>
-            <Link
-              href="/settings"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
-            >
-              Settings
-            </Link>
-            <Link
-              href="/proposals/new"
-              className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
-            >
-              New proposal
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
+                >
+                  All proposals
+                </Link>
+                <Link
+                  href="/settings"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
+                >
+                  Settings
+                </Link>
+                <Link
+                  href="/proposals/new"
+                  className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                >
+                  New proposal
+                </Link>
+                <span className="mx-1 h-6 w-px bg-[var(--koya-line)]" aria-hidden />
+                <span className="flex items-center gap-2 text-sm text-[var(--koya-ink-soft)]">
+                  {user.email}
+                  <span className="rounded-full bg-[var(--koya-mist)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--koya-muted)]">
+                    {user.role}
+                  </span>
+                </span>
+                <SignOutButton />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                >
+                  Create account
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

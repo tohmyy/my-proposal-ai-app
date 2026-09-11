@@ -23,7 +23,7 @@ Do **not** invent alternate stacks, status values, section keys, or AI response 
 | Editor | TipTap (Phase 2+) |
 | AI | Anthropic Claude via `@anthropic-ai/sdk` — contracts in AI-SPEC only |
 | DB | Postgres (Supabase) + Drizzle (`src/db`) |
-| Auth | **None** for MVP (prepare for Supabase Auth later) |
+| Auth | **better-auth** (email+password, Drizzle-backed) — sign-in required app-wide except `/sign-in`, `/sign-up`, and the public `/proposals/[id]/preview` client link; `user.role` is `sales` or `approver`, assigned at signup via the `APPROVER_EMAILS` allowlist |
 | Files | Supabase Storage (Phase 5) |
 | Email | Resend (Phase 5) |
 | Hosting | Vercel |

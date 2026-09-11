@@ -29,6 +29,14 @@ See [PHASES.md](./PHASES.md). Phases 1–5.5 are done; **Phase 6** is next (hard
 
 **Phase 5.5 (sender identity + email preview, added by user request):** visit `/settings` to configure your company name, designation, logo, "From" email, and email salutation wording — these show up in the proposal document's header/footer and in outgoing client emails, replacing the previously hardcoded "Koya Talent" everywhere except the app's own top-nav (left as-is on purpose). Clicking **Send to client** now opens a preview dialog showing the real subject/body before anything sends, where you can add CC/BCC and make light edits for that one send; nothing is saved from the dialog itself. No new env vars — `settings.fromEmail` overrides `RESEND_FROM_EMAIL` when set, otherwise the existing env var is used unchanged.
 
+**Auth (added by user request):** the app now requires sign-in for every page except `/sign-in`, `/sign-up`, and the client-facing `/proposals/[id]/preview` link (kept public since it's what gets emailed to real clients — anonymous visitors there always see the static, read-only document with no editing/approval controls). Sign-up is self-service email+password via [better-auth](https://www.better-auth.com/); every new user is either `sales` or `approver`, decided automatically at signup by matching their email against the `APPROVER_EMAILS` allowlist below — there's no admin UI for changing roles. Only an `approver` can approve or reject a proposal in `pending_approval`; a `sales` user sees a "waiting for approval from a higher-up" message instead. Set these in `.env` / `.env.local`, then restart `npm run dev`:
+
+- `BETTER_AUTH_SECRET` — random string, e.g. `openssl rand -hex 32`
+- `BETTER_AUTH_URL` — same value as `NEXT_PUBLIC_APP_URL` (better-auth doesn't read that var itself)
+- `APPROVER_EMAILS` — comma-separated list of emails to auto-assign the `approver` role at signup
+
+Run `npm run db:push` (or [`drizzle/0006_auth.sql`](./drizzle/0006_auth.sql)) to create the new `user`/`session`/`account`/`verification` tables and the `proposal_events.actor_email` column.
+
 ## Setup
 
 1. Create a Supabase project.

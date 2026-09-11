@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/lib/proposals/actions";
+import { getCurrentUser } from "@/lib/auth";
 import { listSections } from "@/lib/proposals/generate-actions";
 import { getSettings } from "@/lib/settings/actions";
 import { STATUS_LABELS } from "@/lib/proposals/types";
@@ -25,9 +26,10 @@ export default async function ProposalPreviewPage({
   const proposal = await getProposal(id);
   if (!proposal) notFound();
 
-  const [sections, settings] = await Promise.all([
+  const [sections, settings, user] = await Promise.all([
     listSections(id),
     getSettings(),
+    getCurrentUser(),
   ]);
 
   return (
@@ -53,31 +55,37 @@ export default async function ProposalPreviewPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/proposals/${id}`}
-            className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
-          >
-            Back to hub
-          </Link>
+          {user && (
+            <Link
+              href={`/proposals/${id}`}
+              className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+            >
+              Back to hub
+            </Link>
+          )}
           {sections.length > 0 && (
             <>
               <ExportPdfButton proposalId={id} title={proposal.title} />
-              <Link
-                href={`/proposals/${id}/edit`}
-                className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
-              >
-                Edit sections
-              </Link>
-              {proposal.status === "in_review" && (
-                <RequestApprovalButton proposalId={id} />
+              {user && (
+                <>
+                  <Link
+                    href={`/proposals/${id}/edit`}
+                    className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                  >
+                    Edit sections
+                  </Link>
+                  {proposal.status === "in_review" && (
+                    <RequestApprovalButton proposalId={id} />
+                  )}
+                </>
               )}
             </>
           )}
         </div>
       </header>
 
-      {proposal.status === "pending_approval" && (
-        <ApprovalReviewPanel proposalId={id} />
+      {user && proposal.status === "pending_approval" && (
+        <ApprovalReviewPanel proposalId={id} canApprove={user.role === "approver"} />
       )}
 
       {sections.length === 0 ? (
@@ -101,7 +109,7 @@ export default async function ProposalPreviewPage({
           proposal={proposal}
           sections={sections}
           settings={settings}
-          editable={!isPrintCapture}
+          editable={!isPrintCapture && Boolean(user)}
         />
       )}
     </div>
