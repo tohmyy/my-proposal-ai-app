@@ -1,41 +1,37 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { regenerateAffectedSections } from "@/lib/proposals/generate-actions";
 
 export function RegenerateSectionsButton({
-  proposalId,
+  pending,
+  disabled,
+  disabledReason,
+  error,
+  onClick,
 }: {
-  proposalId: string;
+  pending: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
+  error?: string | null;
+  onClick: () => void;
 }) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function onRegenerate() {
-    setError(null);
-    startTransition(async () => {
-      const result = await regenerateAffectedSections(proposalId);
-      if (!result.ok) {
-        setError(result.error);
-        router.refresh();
-        return;
-      }
-      router.refresh();
-      if (result.regenerated.length > 0) {
-        router.push(`/proposals/${proposalId}/preview`);
-      }
-    });
-  }
-
   return (
     <div className="flex flex-col items-start gap-2">
-      <Button type="button" onClick={onRegenerate} disabled={pending} size="sm">
+      <Button
+        type="button"
+        onClick={onClick}
+        disabled={pending || disabled}
+        size="sm"
+      >
         {pending ? "Regenerating…" : "Regenerate these sections"}
       </Button>
-      {error && <p className="text-sm text-rose-700">{error}</p>}
+      {error ? (
+        <p className="text-sm text-rose-700">{error}</p>
+      ) : (
+        disabledReason && (
+          <p className="text-sm text-[var(--koya-muted)]">{disabledReason}</p>
+        )
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +9,14 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { StringListEditor } from "@/components/string-list-editor";
 import { TimelinePhasesEditor } from "@/components/timeline-phases-editor";
+import { RegenerateSectionsButton } from "@/components/regenerate-sections-button";
+import { regenerateAffectedSections } from "@/lib/proposals/generate-actions";
 import {
   getMissingHardFields,
   HARD_FIELD_LABELS,
   mapClarificationGapsToControls,
   type ClarificationGap,
+  type HardIntakeField,
   type IntakeInput,
 } from "@/lib/proposals/types";
 import {
@@ -35,6 +39,11 @@ type IntakeFormProps = {
   clarifyingQuestions?: string[];
   /** When true, template cannot be changed (sections already generated). */
   templateLocked?: boolean;
+  /** Enables the regenerate/resync action bar (omit on the "new proposal" form). */
+  proposalId?: string;
+  hasGeneratedSections?: boolean;
+  staleSectionTitles?: string[];
+  skippedSectionTitles?: string[];
 };
 
 export function IntakeForm({
@@ -44,6 +53,10 @@ export function IntakeForm({
   clarificationGaps = [],
   clarifyingQuestions = [],
   templateLocked = false,
+  proposalId,
+  hasGeneratedSections = false,
+  staleSectionTitles = [],
+  skippedSectionTitles = [],
 }: IntakeFormProps) {
   const [values, setValues] = useState({
     title: initial?.title ?? "",
@@ -78,11 +91,63 @@ export function IntakeForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  // Snapshot of the form's already-defaulted first-render shape, used to
+  // detect unsaved changes. Lazy so it's captured exactly once, from the
+  // same state values above rather than re-derived from `initial`. Reset
+  // to the just-saved shape on a successful submit (see onSubmit below) —
+  // a redirect back to this same URL doesn't reliably remount the form, so
+  // this can't just rely on `initial` changing.
+  const [baseline, setBaseline] = useState(() =>
+    JSON.stringify({ values, templateId, goals, services, timelinePhases }),
+  );
+  // Only gate Save on "has anything changed" when editing an existing
+  // proposal — the blank /proposals/new form has no baseline worth diffing
+  // against and must stay immediately submittable.
+  const isDirty =
+    !initial ||
+    JSON.stringify({ values, templateId, goals, services, timelinePhases }) !==
+      baseline;
+
+  const router = useRouter();
+  const [regeneratePending, startRegenerateTransition] = useTransition();
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
+  function handleRegenerate() {
+    if (!proposalId) return;
+    setRegenerateError(null);
+    startRegenerateTransition(async () => {
+      const result = await regenerateAffectedSections(proposalId);
+      if (!result.ok) {
+        setRegenerateError(result.error);
+        router.refresh();
+        return;
+      }
+      router.refresh();
+      if (result.regenerated.length > 0) {
+        router.push(`/proposals/${proposalId}/preview`);
+      }
+    });
+  }
+
   const fieldErrors = useMemo(
     () => mapClarificationGapsToControls(clarificationGaps),
     [clarificationGaps],
   );
   const hasClarification = clarificationGaps.length > 0;
+
+  const canRegenerate =
+    hasGeneratedSections &&
+    !hasClarification &&
+    staleSectionTitles.length > 0 &&
+    !isDirty;
+
+  const regenerateDisabledReason = isDirty
+    ? "Save your changes first."
+    : hasClarification
+      ? "Resolve the clarification issues first."
+      : staleSectionTitles.length === 0
+        ? "No intake changes since the last generation."
+        : undefined;
 
   const intakePreview: IntakeInput = useMemo(
     () => ({
@@ -128,6 +193,11 @@ export function IntakeForm({
         "digest" in err &&
         String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
       ) {
+        // The action only redirects after a successful save — treat the
+        // just-submitted values as the new saved baseline.
+        setBaseline(
+          JSON.stringify({ values, templateId, goals, services, timelinePhases }),
+        );
         throw err;
       }
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -136,8 +206,26 @@ export function IntakeForm({
     }
   }
 
+  const actionsProps = {
+    pending,
+    isDirty,
+    submitLabel,
+    missingHard,
+    hasClarification,
+    hasGeneratedSections,
+    staleSectionTitles,
+    skippedSectionTitles,
+    canRegenerate,
+    regenerateReason: regenerateDisabledReason,
+    regeneratePending,
+    regenerateError,
+    onRegenerate: handleRegenerate,
+  };
+
   return (
     <form action={onSubmit} className="space-y-10 animate-in-up">
+      <IntakeFormActions {...actionsProps} />
+
       {hasClarification && (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-950">
           <p className="font-semibold">Clarification needed</p>
@@ -463,8 +551,46 @@ export function IntakeForm({
         />
       </section>
 
-      <div className="flex items-center gap-3 border-t border-[var(--koya-line)] pt-6">
-        <Button type="submit" disabled={pending} size="lg">
+      <div className="border-t border-[var(--koya-line)] pt-6">
+        <IntakeFormActions {...actionsProps} />
+      </div>
+    </form>
+  );
+}
+
+function IntakeFormActions({
+  pending,
+  isDirty,
+  submitLabel,
+  missingHard,
+  hasClarification,
+  hasGeneratedSections,
+  staleSectionTitles,
+  skippedSectionTitles,
+  canRegenerate,
+  regenerateReason,
+  regeneratePending,
+  regenerateError,
+  onRegenerate,
+}: {
+  pending: boolean;
+  isDirty: boolean;
+  submitLabel: string;
+  missingHard: HardIntakeField[];
+  hasClarification: boolean;
+  hasGeneratedSections: boolean;
+  staleSectionTitles: string[];
+  skippedSectionTitles: string[];
+  canRegenerate: boolean;
+  regenerateReason?: string;
+  regeneratePending: boolean;
+  regenerateError: string | null;
+  onRegenerate: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={pending || !isDirty} size="lg">
           {pending ? "Saving…" : submitLabel}
         </Button>
         {missingHard.length === 0 && !hasClarification && (
@@ -478,7 +604,46 @@ export function IntakeForm({
           </p>
         )}
       </div>
-    </form>
+
+      {hasGeneratedSections && (
+        <div className="rounded-lg border border-[var(--koya-accent)]/40 bg-teal-50/70 px-4 py-3 text-sm text-[var(--koya-ink)]">
+          {staleSectionTitles.length > 0 && (
+            <>
+              <p className="font-semibold">
+                Intake changes affect {staleSectionTitles.length} section
+                {staleSectionTitles.length > 1 ? "s" : ""}
+              </p>
+              <p className="mt-1 text-[var(--koya-ink-soft)]">
+                {staleSectionTitles.join(", ")}
+              </p>
+            </>
+          )}
+          {skippedSectionTitles.length > 0 && (
+            <p
+              className={cn(
+                staleSectionTitles.length > 0 ? "mt-1" : "",
+                "text-[var(--koya-muted)]",
+              )}
+            >
+              Skipping {skippedSectionTitles.length} section
+              {skippedSectionTitles.length > 1 ? "s" : ""} you&rsquo;ve edited
+              manually: {skippedSectionTitles.join(", ")}
+              {staleSectionTitles.length === 0 &&
+                " — edit it yourself if it needs to reflect the change."}
+            </p>
+          )}
+          <div className="mt-3">
+            <RegenerateSectionsButton
+              pending={regeneratePending}
+              disabled={!canRegenerate}
+              disabledReason={regenerateReason}
+              error={regenerateError}
+              onClick={onRegenerate}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
