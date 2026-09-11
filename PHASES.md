@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 5 complete (server-side Chromium PDF + Supabase Storage + email attachment live). **Next:** Phase 6 (hardening, evidence, deploy).
+**Current:** Phase 5.5 complete (sender-identity settings + email preview/CC/BCC live, explicit scope expansion beyond the original PRD). **Next:** Phase 6 (hardening, evidence, deploy).
 
 ---
 
@@ -84,6 +84,22 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 **Needs:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (see README). `RESEND_API_KEY` is **not configured in this dev environment**, so the send-succeeds path itself wasn't exercised — but with a dummy key set temporarily for verification, the PDF-render-and-attach step was confirmed to run and produce a real buffer before Resend's own auth check cleanly rejected the fake key, then reverted. The Vercel-only serverless Chromium code path (`@sparticuz/chromium` + `playwright-core`) **cannot run on this Windows dev machine at all** — it was built carefully against both packages' documented APIs and this Next.js version's `serverExternalPackages`/`maxDuration` docs, but is only truly confirmed once deployed to Vercel.
 
 **Exit:** Approve → Generate PDF (or Send, which regenerates one) → real PDF in Supabase Storage, downloadable from the hub and attached to the client email → `sent`; failures clear, content preserved.
+
+---
+
+## Phase 5.5 — Sender-identity settings + email preview (explicit scope expansion, user-requested)
+
+**Status:** Done — not in the original PRD/TDD; added on top of Phase 5 at the user's request
+
+- [x] `/settings` page (`src/app/settings/page.tsx`, `src/components/settings-form.tsx`): a global singleton row (`settings` table, fixed id `"default"`, `src/db/schema.ts` — `getSettings()`/`updateSettings()`/`uploadSenderLogo()` in `src/lib/settings/actions.ts`) with no auth, matching the rest of the app's no-auth MVP posture
+- [x] Sender company name, designation, "From" email, and email salutation template are all configurable; `fromEmail` overrides `RESEND_FROM_EMAIL` when set, otherwise falls back to it unchanged
+- [x] Logo upload (`sender-assets` Storage bucket, public, `sender/logo.{ext}`, ≤2MB PNG/JPEG/WebP/SVG) via a shared `ensurePublicBucket` helper (`src/lib/supabase/storage.ts`) extracted from and reused by the existing PDF-upload code
+- [x] Proposal document (`src/components/proposal-document.tsx`) header brand label and footer sign-off now read from settings instead of the previously hardcoded literal `"Koya Talent"` — verified across the `koya_classic` and `koya_navy` template skins; falls back to today's exact look when settings are unconfigured
+- [x] Email preview-before-send: `previewProposalEmail` (`src/lib/proposals/actions.ts`) builds the real subject/body (via the same `buildProposalEmail` `sendProposalEmail` uses) without sending, so a new `Dialog` primitive (`src/components/ui/dialog.tsx`, first modal in the app, wraps the native `<dialog>` element) opens from `SendEmailButton` showing the real content
+- [x] CC/BCC (comma/newline-separated, parsed/deduped client-side) and light subject/body edits are supported in the dialog; `sendProposalEmail` now accepts an optional `overrides` param and passes non-empty `cc`/`bcc` through to Resend, recording them in the `email_sent` event's `meta`
+- [x] Explicitly out of scope (user's choice): plain-text body only (no rich/HTML editor, no Resend `html` field); the app's own top-nav wordmark is untouched by sender-identity settings — only the proposal document and outgoing email read from it
+
+**Exit:** `/settings` configures sender identity; proposal document and client email reflect it; "Send to client" always previews real content first, supports CC/BCC and light edits, and only actually sends on explicit confirmation.
 
 ---
 

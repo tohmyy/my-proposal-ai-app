@@ -1,4 +1,4 @@
-import type { Proposal, ProposalSection } from "@/db/schema";
+import type { Proposal, ProposalSection, Settings } from "@/db/schema";
 import { InlineText } from "@/components/inline-text";
 import { InlineSectionBody } from "@/components/inline-section-body";
 import { InlineEditProvider } from "@/components/inline-edit-context";
@@ -21,10 +21,12 @@ function formatCallDate(value: string | null) {
 export function ProposalDocument({
   proposal,
   sections,
+  settings,
   editable = true,
 }: {
   proposal: Proposal;
   sections: ProposalSection[];
+  settings: Settings;
   editable?: boolean;
 }) {
   const template = getProposalTemplate(proposal.templateId);
@@ -33,6 +35,8 @@ export function ProposalDocument({
     proposal.clientName?.trim() ||
     "your organization";
   const dateLabel = formatCallDate(proposal.dateOfCall);
+  const senderCompanyName = settings.senderCompanyName?.trim() || "Koya Talent";
+  const senderDesignation = settings.senderDesignation?.trim();
 
   const article = (
     <article
@@ -43,7 +47,17 @@ export function ProposalDocument({
       )}
     >
       <header className="proposal-doc-header">
-        <p className="proposal-doc-brand">Koya Talent</p>
+        <div className="proposal-doc-brand-row">
+          {settings.senderLogoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={settings.senderLogoUrl}
+              alt={senderCompanyName}
+              className="proposal-doc-logo"
+            />
+          )}
+          <p className="proposal-doc-brand">{senderCompanyName}</p>
+        </div>
         <h1 className="proposal-doc-title">Proposal for {clientLabel}</h1>
         <div className="proposal-doc-meta">
           {editable ? (
@@ -160,8 +174,9 @@ export function ProposalDocument({
             Warm regards,
             <br />
             {proposal.salespersonName.trim()}
+            {senderDesignation ? `, ${senderDesignation}` : ""}
             <br />
-            Koya Talent
+            {senderCompanyName}
           </p>
         )}
       </footer>

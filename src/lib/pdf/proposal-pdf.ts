@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { proposals } from "@/db/schema";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { ensurePublicBucket } from "@/lib/supabase/storage";
 import { launchPdfBrowser } from "./browser";
 
 const BUCKET = "proposal-pdfs";
@@ -29,28 +30,13 @@ export async function renderProposalPdf(proposalId: string): Promise<Buffer> {
   }
 }
 
-async function ensureBucketExists(
-  supabase: ReturnType<typeof createSupabaseAdmin>,
-) {
-  const { data: existing } = await supabase.storage.getBucket(BUCKET);
-  if (existing) return;
-
-  const { error } = await supabase.storage.createBucket(BUCKET, {
-    public: true,
-  });
-  // Ignore a race where another request created it first.
-  if (error && !error.message?.toLowerCase().includes("already exists")) {
-    throw error;
-  }
-}
-
 /** Uploads a rendered PDF buffer to Supabase Storage and returns its public URL. */
 export async function uploadProposalPdf(
   proposalId: string,
   buffer: Buffer,
 ): Promise<string> {
   const supabase = createSupabaseAdmin();
-  await ensureBucketExists(supabase);
+  await ensurePublicBucket(supabase, BUCKET);
 
   const path = `proposals/${proposalId}/proposal.pdf`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, buffer, {

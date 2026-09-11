@@ -5,9 +5,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { db } from "@/db";
-import { proposals, proposalEvents, proposalSections, type Proposal } from "@/db/schema";
+import {
+  proposals,
+  proposalEvents,
+  proposalSections,
+  type Proposal,
+  type Settings,
+} from "@/db/schema";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
+import { getSettings } from "@/lib/settings/actions";
 import {
   displayTitle,
   getMissingHardFields,
@@ -353,16 +360,27 @@ export async function logProposalExport(
 
 /**
  * Plain-text body matching assets/client-email-template.md's structure.
- * The proposal link is always included; sendProposalEmail additionally
- * attaches a freshly rendered PDF when generation succeeds (see below).
+ * The salutation, sign-off designation, and sender company name come from
+ * Settings so they stay in sync with the proposal document's own header/
+ * footer. The proposal link is always included; sendProposalEmail
+ * additionally attaches a freshly rendered PDF when generation succeeds.
  */
-function buildProposalEmail(proposal: Proposal, proposalLink: string) {
+function buildProposalEmail(
+  proposal: Proposal,
+  proposalLink: string,
+  settings: Settings,
+) {
   const companyName = proposal.companyName?.trim() || "your company";
   const clientName = proposal.clientName?.trim() || "there";
-  const salespersonName = proposal.salespersonName?.trim() || "Koya Talent";
+  const senderCompanyName = settings.senderCompanyName?.trim() || "Koya Talent";
+  const salespersonName = proposal.salespersonName?.trim() || senderCompanyName;
+  const designation = settings.senderDesignation?.trim();
+  const salutationTemplate =
+    settings.emailSalutationTemplate?.trim() || "Hi {{client_name}},";
+  const greeting = salutationTemplate.replace("{{client_name}}", clientName);
 
   const subject = `Proposal for ${companyName}`;
-  const text = `Hi ${clientName},
+  const text = `${greeting}
 
 Thanks again for taking the time to speak with us. Based on our conversation, we have put together a customized proposal for your review.
 
@@ -376,15 +394,60 @@ Looking forward to hearing your thoughts.
 
 Best regards,
 
-${salespersonName}
+${salespersonName}${designation ? `, ${designation}` : ""}
 
-Koya Talent`;
+${senderCompanyName}`;
 
   return { subject, text };
 }
 
+/**
+ * Builds the same email content sendProposalEmail would send, without
+ * sending it — used to prefill the preview-before-send dialog so it can
+ * never drift from what would actually go out.
+ */
+export async function previewProposalEmail(proposalId: string): Promise<
+  | { ok: true; to: string; subject: string; text: string }
+  | { ok: false; error: string }
+> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+  if (proposal.status !== "approved") {
+    return {
+      ok: false,
+      error: "Proposal must be approved before it can be sent.",
+    };
+  }
+  const clientEmail = proposal.clientEmail?.trim();
+  if (!clientEmail) {
+    return {
+      ok: false,
+      error: "No client email on file — add one in intake first.",
+    };
+  }
+  if (!process.env.RESEND_API_KEY) {
+    return {
+      ok: false,
+      error: "Email service is not configured (RESEND_API_KEY is not set).",
+    };
+  }
+
+  const settings = await getSettings();
+  const proposalLink = `${getAppBaseUrl()}/proposals/${proposalId}/preview`;
+  const { subject, text } = buildProposalEmail(proposal, proposalLink, settings);
+  return { ok: true, to: clientEmail, subject, text };
+}
+
 export async function sendProposalEmail(
   proposalId: string,
+  overrides?: {
+    subject?: string;
+    text?: string;
+    cc?: string[];
+    bcc?: string[];
+  },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const proposal = await getProposal(proposalId);
   if (!proposal) {
@@ -419,9 +482,17 @@ export async function sendProposalEmail(
     );
   }
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL || "proposals@example.com";
+  const settings = await getSettings();
+  const fromAddress =
+    settings.fromEmail?.trim() ||
+    process.env.RESEND_FROM_EMAIL ||
+    "proposals@example.com";
   const proposalLink = `${getAppBaseUrl()}/proposals/${proposalId}/preview`;
-  const { subject, text } = buildProposalEmail(proposal, proposalLink);
+  const built = buildProposalEmail(proposal, proposalLink, settings);
+  const subject = overrides?.subject?.trim() || built.subject;
+  const text = overrides?.text?.trim() ? overrides.text : built.text;
+  const cc = overrides?.cc?.filter((addr) => addr.trim());
+  const bcc = overrides?.bcc?.filter((addr) => addr.trim());
 
   // PDF attachment is best-effort: a rendering hiccup shouldn't block the
   // client from getting the proposal at all, since the link above already
@@ -453,6 +524,8 @@ export async function sendProposalEmail(
       to: clientEmail,
       subject,
       text,
+      ...(cc && cc.length > 0 ? { cc } : {}),
+      ...(bcc && bcc.length > 0 ? { bcc } : {}),
       ...(attachmentBuffer
         ? { attachments: [{ filename: "proposal.pdf", content: attachmentBuffer }] }
         : {}),
@@ -471,7 +544,7 @@ export async function sendProposalEmail(
       proposalId,
       type: "email_sent",
       message: `Proposal emailed to ${clientEmail}.`,
-      meta: { to: clientEmail, resendId: result.data?.id },
+      meta: { to: clientEmail, cc, bcc, resendId: result.data?.id },
     });
 
     revalidateProposalPaths(proposalId);

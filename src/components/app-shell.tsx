@@ -22,6 +22,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               All proposals
             </Link>
             <Link
+              href="/settings"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--koya-ink-soft)] transition hover:bg-black/5 hover:text-[var(--koya-ink)]"
+            >
+              Settings
+            </Link>
+            <Link
               href="/proposals/new"
               className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
             >

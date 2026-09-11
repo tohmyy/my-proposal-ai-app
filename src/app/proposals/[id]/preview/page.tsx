@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/lib/proposals/actions";
 import { listSections } from "@/lib/proposals/generate-actions";
+import { getSettings } from "@/lib/settings/actions";
 import { STATUS_LABELS } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ProposalDocument } from "@/components/proposal-document";
@@ -24,7 +25,10 @@ export default async function ProposalPreviewPage({
   const proposal = await getProposal(id);
   if (!proposal) notFound();
 
-  const sections = await listSections(id);
+  const [sections, settings] = await Promise.all([
+    listSections(id),
+    getSettings(),
+  ]);
 
   return (
     <div className="space-y-8 animate-in-up">
@@ -96,6 +100,7 @@ export default async function ProposalPreviewPage({
         <ProposalDocument
           proposal={proposal}
           sections={sections}
+          settings={settings}
           editable={!isPrintCapture}
         />
       )}

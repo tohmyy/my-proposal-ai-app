@@ -106,6 +106,41 @@ export const proposalEvents = pgTable("proposal_events", {
     .defaultNow(),
 });
 
+/**
+ * Single source of truth for the sender-identity defaults — used both as
+ * the DB column defaults below and as `getSettings()`'s in-memory fallback
+ * when no settings row has been saved yet, so the two can't drift apart.
+ */
+export const SETTINGS_DEFAULTS = {
+  senderCompanyName: "Koya Talent",
+  senderDesignation: "",
+  senderLogoUrl: null as string | null,
+  fromEmail: "",
+  emailSalutationTemplate: "Hi {{client_name}},",
+};
+
+export const SETTINGS_SINGLETON_ID = "default";
+
+export const settings = pgTable("settings", {
+  id: text("id").primaryKey().default(SETTINGS_SINGLETON_ID),
+  senderCompanyName: text("sender_company_name")
+    .notNull()
+    .default(SETTINGS_DEFAULTS.senderCompanyName),
+  senderDesignation: text("sender_designation")
+    .notNull()
+    .default(SETTINGS_DEFAULTS.senderDesignation),
+  senderLogoUrl: text("sender_logo_url"),
+  fromEmail: text("from_email").notNull().default(SETTINGS_DEFAULTS.fromEmail),
+  emailSalutationTemplate: text("email_salutation_template")
+    .notNull()
+    .default(SETTINGS_DEFAULTS.emailSalutationTemplate),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Settings = typeof settings.$inferSelect;
+
 export type Proposal = typeof proposals.$inferSelect;
 export type NewProposal = typeof proposals.$inferInsert;
 export type ProposalSection = typeof proposalSections.$inferSelect;

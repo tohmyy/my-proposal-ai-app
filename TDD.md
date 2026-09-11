@@ -380,7 +380,7 @@ UI must show:
 | --- | --- |
 | Auth (MVP) | No auth; prepare for Supabase Auth via env later |
 | Who can approve | Anyone (no separate role) |
-| Client delivery | Email primary; prefer **PDF attachment**; also link + in-app download |
+| Client delivery | Email primary; prefer **PDF attachment**; also link + in-app download; always previewed (with optional CC/BCC and light edits) before sending — see §11 item 7 |
 | Database | Supabase (Postgres) |
 | File storage | **Supabase Storage** (not ImageKit for MVP) |
 
@@ -392,6 +392,7 @@ UI must show:
 4. **ORM** — Prisma vs Drizzle.  
 5. **DOCX export** — out of MVP vs stretch.  
 6. **Exact Claude model** — model id for cost/quality.
+7. ~~**Sender identity + email preview** — not in the original PRD; added by explicit user request (2026-09-11).~~ **Resolved:** a global singleton `settings` row (no auth, matching the app's no-auth posture) holds sender company name, designation, logo, "From" email, and an email salutation template, editable at `/settings`. These now drive the proposal document's header/footer (replacing a previously hardcoded `"Koya Talent"` in three places) and the client email's greeting/sign-off. Sending is no longer immediate: `SendEmailButton` opens a preview dialog (first modal in the app, a thin wrapper around the native `<dialog>` element — no new dependency) showing the actual subject/body that would be sent, with optional CC/BCC and light plain-text edits, before the user explicitly confirms. Scoped deliberately: plain text only (no HTML email body), and the app's own top-nav branding is untouched — only the proposal document and outgoing email read from settings.
 
 ---
 
