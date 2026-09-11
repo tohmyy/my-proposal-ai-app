@@ -124,7 +124,7 @@ export function IntakeExtractionPanel({
             placeholder="Paste the raw call summary or notes here…"
             rows={6}
           />
-          <Button type="button" onClick={onExtractFromText} disabled={pending}>
+          <Button type="button" variant="outline" onClick={onExtractFromText} loading={pending}>
             {pending ? "Extracting…" : "Extract with AI"}
           </Button>
         </div>
@@ -140,7 +140,7 @@ export function IntakeExtractionPanel({
           <p className="text-xs text-[var(--koya-muted)]">
             PDF or plain text (.txt/.md), up to 15MB.
           </p>
-          <Button type="button" onClick={onExtractFromFile} disabled={pending}>
+          <Button type="button" variant="outline" onClick={onExtractFromFile} loading={pending}>
             {pending ? "Extracting…" : "Extract with AI"}
           </Button>
         </div>

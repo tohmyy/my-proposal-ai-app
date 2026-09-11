@@ -35,7 +35,7 @@ export function ExportPdfButton({
       type="button"
       variant="outline"
       onClick={onExport}
-      disabled={pending}
+      loading={pending}
       className="no-print"
     >
       {pending ? "Exporting…" : "Export PDF"}

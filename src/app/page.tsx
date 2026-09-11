@@ -3,6 +3,8 @@ import { ArrowRight, FileText, Plus } from "lucide-react";
 import { listProposals } from "@/lib/proposals/actions";
 import { STATUS_LABELS } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export default async function HomePage() {
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
             href="/proposals/new"
-            className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--koya-accent)] px-6 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-[var(--koya-accent-hover)]"
+            className={cn(buttonVariants({ size: "lg" }))}
           >
             <Plus className="h-4 w-4" />
             New proposal

@@ -17,8 +17,10 @@ export function RegenerateSectionsButton({
     <div className="flex flex-col items-start gap-2">
       <Button
         type="button"
+        variant="outline"
         onClick={onClick}
-        disabled={pending || disabled}
+        loading={pending}
+        disabled={disabled}
         size="sm"
       >
         {pending ? "Regenerating…" : "Regenerate these sections"}

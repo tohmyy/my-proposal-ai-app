@@ -9,6 +9,8 @@ import { listSections } from "@/lib/proposals/generate-actions";
 import { getStaleSections } from "@/lib/proposals/intake-section-map";
 import { SECTION_CATALOG } from "@/lib/ai/prompts";
 import { IntakeForm } from "@/components/intake-form";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { ClarificationGap } from "@/lib/proposals/types";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +69,7 @@ export default async function EditIntakePage({
         </div>
         <Link
           href={`/proposals/${id}`}
-          className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+          className={cn(buttonVariants({ variant: "outline" }))}
         >
           Back to hub
         </Link>

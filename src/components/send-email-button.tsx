@@ -71,7 +71,7 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
 
   return (
     <>
-      <Button type="button" onClick={onOpenPreview} disabled={loadPending}>
+      <Button type="button" onClick={onOpenPreview} loading={loadPending}>
         {loadPending ? "Loading…" : "Send to client"}
       </Button>
 
@@ -137,7 +137,7 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
             >
               Cancel
             </Button>
-            <Button type="button" onClick={onSend} disabled={sendPending}>
+            <Button type="button" onClick={onSend} loading={sendPending}>
               {sendPending ? "Sending…" : "Send email"}
             </Button>
           </div>

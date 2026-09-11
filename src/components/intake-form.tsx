@@ -848,7 +848,7 @@ function IntakeFormActions({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={pending || !isDirty} size="lg">
+        <Button type="submit" loading={pending} disabled={!isDirty} size="lg">
           {pending ? "Saving…" : submitLabel}
         </Button>
         {missingHard.length === 0 && !hasClarification && (

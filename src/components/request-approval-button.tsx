@@ -23,7 +23,7 @@ export function RequestApprovalButton({ proposalId }: { proposalId: string }) {
   }
 
   return (
-    <Button type="button" onClick={onRequest} disabled={pending}>
+    <Button type="button" onClick={onRequest} loading={pending}>
       {pending ? "Requesting…" : "Request approval"}
     </Button>
   );

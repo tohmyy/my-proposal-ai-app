@@ -122,14 +122,16 @@ export function SectionEditor({
               type="button"
               variant="outline"
               onClick={onRegenerate}
-              disabled={pending || regenerating || !editor}
+              loading={regenerating}
+              disabled={pending || !editor}
             >
               {regenerating ? "Regenerating…" : "Regenerate"}
             </Button>
             <Button
               type="button"
               onClick={onSave}
-              disabled={pending || regenerating || !editor}
+              loading={pending}
+              disabled={regenerating || !editor}
             >
               {pending ? "Saving…" : "Save section"}
             </Button>

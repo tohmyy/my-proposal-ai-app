@@ -96,7 +96,8 @@ export function InlineSectionBody({
             size="sm"
             variant="outline"
             onClick={regenerate}
-            disabled={pending || regenerating}
+            loading={regenerating}
+            disabled={pending}
           >
             {regenerating ? "Regenerating…" : "Regenerate"}
           </Button>
@@ -109,7 +110,7 @@ export function InlineSectionBody({
           >
             History
           </Button>
-          <Button type="button" size="sm" onClick={save} disabled={pending || regenerating}>
+          <Button type="button" size="sm" onClick={save} loading={pending} disabled={regenerating}>
             {pending ? "Saving…" : "Save"}
           </Button>
           <Button

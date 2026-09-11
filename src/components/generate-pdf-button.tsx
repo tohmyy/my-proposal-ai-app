@@ -24,7 +24,7 @@ export function GeneratePdfButton({ proposalId }: { proposalId: string }) {
   }
 
   return (
-    <Button type="button" variant="outline" onClick={onGenerate} disabled={pending}>
+    <Button type="button" variant="outline" onClick={onGenerate} loading={pending}>
       {pending ? "Generating PDF…" : "Generate PDF"}
     </Button>
   );

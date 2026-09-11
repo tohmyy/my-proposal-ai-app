@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ToastProvider } from "@/components/ui/toast";
 import { SignOutButton } from "@/components/sign-out-button";
+import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -36,7 +38,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
                 <Link
                   href="/proposals/new"
-                  className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                  className={cn(buttonVariants({ size: "sm" }), "text-sm")}
                 >
                   New proposal
                 </Link>
@@ -59,7 +61,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
                 <Link
                   href="/sign-up"
-                  className="rounded-md bg-[var(--koya-accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                  className={cn(buttonVariants({ size: "sm" }), "text-sm")}
                 >
                   Create account
                 </Link>

@@ -64,7 +64,7 @@ export function SignUpForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={pending} size="lg" className="w-full">
+      <Button type="submit" loading={pending} size="lg" className="w-full">
         {pending ? "Creating account…" : "Create account"}
       </Button>
     </form>

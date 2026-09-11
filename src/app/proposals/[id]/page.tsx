@@ -15,6 +15,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { GenerateButton } from "@/components/generate-button";
 import { SendEmailButton } from "@/components/send-email-button";
 import { GeneratePdfButton } from "@/components/generate-pdf-button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { TimelinePhase } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +82,12 @@ export default async function ProposalHubPage({
         <div className="flex flex-wrap items-start gap-2">
           <Link
             href={`/proposals/${id}/intake`}
-            className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+            className={cn(
+              buttonVariants({
+                variant:
+                  proposal.status === "needs_clarification" ? "default" : "outline",
+              }),
+            )}
           >
             Edit intake
           </Link>
@@ -88,13 +95,13 @@ export default async function ProposalHubPage({
             <>
               <Link
                 href={`/proposals/${id}/preview`}
-                className="inline-flex h-11 items-center rounded-md bg-[var(--koya-accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--koya-accent-hover)] hover:-translate-y-px"
+                className={cn(buttonVariants({ variant: "outline" }))}
               >
                 Preview proposal
               </Link>
               <Link
                 href={`/proposals/${id}/edit`}
-                className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+                className={cn(buttonVariants({ variant: "outline" }))}
               >
                 Edit sections
               </Link>
@@ -104,7 +111,7 @@ export default async function ProposalHubPage({
                   href={proposal.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+                  className={cn(buttonVariants({ variant: "outline" }))}
                 >
                   Download PDF
                 </a>
@@ -116,7 +123,12 @@ export default async function ProposalHubPage({
           )}
           {(proposal.status === "draft" ||
             proposal.status === "needs_clarification") && (
-            <GenerateButton proposalId={id} />
+            <GenerateButton
+              proposalId={id}
+              variant={
+                proposal.status === "needs_clarification" ? "outline" : "default"
+              }
+            />
           )}
         </div>
       </header>

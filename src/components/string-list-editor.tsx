@@ -81,7 +81,7 @@ export function StringListEditor({
             />
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               className="shrink-0 px-2"
               onClick={() => removeAt(index)}

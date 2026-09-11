@@ -57,7 +57,7 @@ export function ApprovalReviewPanel({
         </p>
       ) : !rejecting ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={onApprove} disabled={pending}>
+          <Button type="button" onClick={onApprove} loading={pending}>
             {pending ? "Approving…" : "Approve"}
           </Button>
           <Button
@@ -78,7 +78,12 @@ export function ApprovalReviewPanel({
             rows={3}
           />
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" onClick={onConfirmReject} disabled={pending}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onConfirmReject}
+              loading={pending}
+            >
               {pending ? "Sending back…" : "Send back for changes"}
             </Button>
             <Button

@@ -131,7 +131,8 @@ export function SectionHistoryDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onRestore(revisions[index].id)}
-                disabled={index === 0 || restorePending}
+                loading={restorePending}
+                disabled={index === 0}
               >
                 {restorePending ? "Restoring…" : "Restore this version"}
               </Button>

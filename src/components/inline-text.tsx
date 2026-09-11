@@ -80,7 +80,7 @@ export function InlineText({
           }}
           className={cn("h-9 w-auto min-w-[10ch]", inputClassName)}
         />
-        <Button type="button" size="sm" onClick={save} disabled={pending}>
+        <Button type="button" size="sm" onClick={save} loading={pending}>
           {pending ? "Saving…" : "Save"}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={cancel} disabled={pending}>

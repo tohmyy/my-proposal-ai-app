@@ -132,7 +132,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           </div>
         </section>
 
-        <Button type="submit" disabled={savePending} size="lg">
+        <Button type="submit" loading={savePending} size="lg">
           {savePending ? "Saving…" : "Save settings"}
         </Button>
       </form>
@@ -167,7 +167,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
             className="text-sm text-[var(--koya-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--koya-line)] file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--koya-ink)]"
           />
-          <Button type="submit" variant="outline" disabled={logoPending}>
+          <Button type="submit" variant="outline" loading={logoPending}>
             {logoPending ? "Uploading…" : "Upload logo"}
           </Button>
         </form>

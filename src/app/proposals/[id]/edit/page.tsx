@@ -5,6 +5,8 @@ import { listSections } from "@/lib/proposals/generate-actions";
 import { STATUS_LABELS } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SectionEditor } from "@/components/section-editor";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -39,13 +41,13 @@ export default async function EditProposalPage({
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/proposals/${id}/preview`}
-            className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+            className={cn(buttonVariants({ variant: "outline" }))}
           >
             Full preview
           </Link>
           <Link
             href={`/proposals/${id}`}
-            className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+            className={cn(buttonVariants({ variant: "outline" }))}
           >
             Back to hub
           </Link>

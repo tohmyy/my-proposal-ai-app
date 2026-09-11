@@ -52,7 +52,7 @@ export function SignInForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={pending} size="lg" className="w-full">
+      <Button type="submit" loading={pending} size="lg" className="w-full">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
     </form>
