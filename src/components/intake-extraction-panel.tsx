@@ -15,24 +15,35 @@ type Mode = "text" | "file";
 
 export function IntakeExtractionPanel({
   onApply,
+  mode: controlledMode,
+  variant = "collapsible",
 }: {
   onApply: (data: IntakeExtractionResponse, sourceText: string) => void;
+  /** Lock to paste or upload (used after the new-proposal entry chooser). */
+  mode?: Mode;
+  /** `embedded` = always open section; `collapsible` = details accordion. */
+  variant?: "embedded" | "collapsible";
 }) {
-  const [mode, setMode] = useState<Mode>("text");
+  const [internalMode, setInternalMode] = useState<Mode>(controlledMode ?? "text");
+  const mode = controlledMode ?? internalMode;
   const [summary, setSummary] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  function handleResult(result: Awaited<ReturnType<typeof extractIntakeFromSummary>>, sourceText: string) {
+  function handleResult(
+    result: Awaited<ReturnType<typeof extractIntakeFromSummary>>,
+    sourceText: string,
+  ) {
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
     onApply(result.data, sourceText);
-    const filledCount =
-      Object.keys(result.data).filter((k) => k !== "notFound").length;
+    const filledCount = Object.keys(result.data).filter(
+      (k) => k !== "notFound",
+    ).length;
     const stillMissing = result.data.notFound.length
       ? ` Couldn't find: ${result.data.notFound.join(", ")}.`
       : "";
@@ -59,7 +70,8 @@ export function IntakeExtractionPanel({
       toast.error("Choose a file first.");
       return;
     }
-    const isTextFile = /\.(txt|md)$/i.test(file.name) || file.type.startsWith("text/");
+    const isTextFile =
+      /\.(txt|md)$/i.test(file.name) || file.type.startsWith("text/");
     startTransition(async () => {
       const formData = new FormData();
       formData.set("document", file);
@@ -73,30 +85,13 @@ export function IntakeExtractionPanel({
     });
   }
 
-  return (
-    <details className="group rounded-lg border border-[var(--koya-line)] bg-white/60 open:bg-white/80">
-      <summary className="cursor-pointer list-none px-4 py-3 select-none">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <span className="font-[family-name:var(--font-syne)] text-base font-semibold text-[var(--koya-ink)]">
-              Fill from a call summary
-            </span>
-            <p className="mt-0.5 text-sm text-[var(--koya-muted)]">
-              Paste your call notes or upload a document — Claude fills in
-              whatever fields it can find, and you review the rest below.
-            </p>
-          </div>
-          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[var(--koya-muted)] transition group-open:rotate-180">
-            ▾
-          </span>
-        </div>
-      </summary>
-
-      <div className="space-y-4 border-t border-[var(--koya-line)] px-4 py-4">
+  const body = (
+    <div className="space-y-4">
+      {!controlledMode && (
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setMode("text")}
+            onClick={() => setInternalMode("text")}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-semibold transition",
               mode === "text"
@@ -108,7 +103,7 @@ export function IntakeExtractionPanel({
           </button>
           <button
             type="button"
-            onClick={() => setMode("file")}
+            onClick={() => setInternalMode("file")}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-semibold transition",
               mode === "file"
@@ -119,37 +114,75 @@ export function IntakeExtractionPanel({
             Upload document
           </button>
         </div>
+      )}
 
-        {mode === "text" ? (
-          <div className="space-y-2">
-            <Textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="Paste the raw call summary or notes here…"
-              rows={6}
-            />
-            <Button type="button" onClick={onExtractFromText} disabled={pending}>
-              {pending ? "Extracting…" : "Extract with AI"}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-[var(--koya-ink-soft)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--koya-mist)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--koya-ink)] hover:file:bg-black/5"
-            />
-            <p className="text-xs text-[var(--koya-muted)]">
-              PDF or plain text (.txt/.md), up to 15MB.
+      {mode === "text" ? (
+        <div className="space-y-2">
+          <Textarea
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="Paste the raw call summary or notes here…"
+            rows={6}
+          />
+          <Button type="button" onClick={onExtractFromText} disabled={pending}>
+            {pending ? "Extracting…" : "Extract with AI"}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-[var(--koya-ink-soft)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--koya-mist)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--koya-ink)] hover:file:bg-black/5"
+          />
+          <p className="text-xs text-[var(--koya-muted)]">
+            PDF or plain text (.txt/.md), up to 15MB.
+          </p>
+          <Button type="button" onClick={onExtractFromFile} disabled={pending}>
+            {pending ? "Extracting…" : "Extract with AI"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (variant === "embedded") {
+    return (
+      <section className="space-y-3 rounded-lg border border-[var(--koya-accent)]/35 bg-teal-50/40 px-4 py-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-syne)] text-lg font-semibold text-[var(--koya-ink)]">
+            {mode === "text" ? "Paste call summary" : "Upload call document"}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--koya-muted)]">
+            Claude fills empty intake fields from this source. Review
+            highlighted gaps below before saving.
+          </p>
+        </div>
+        {body}
+      </section>
+    );
+  }
+
+  return (
+    <details className="group rounded-lg border border-[var(--koya-line)] bg-white/60 open:bg-white/80">
+      <summary className="cursor-pointer list-none px-4 py-3 select-none">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <span className="font-[family-name:var(--font-syne)] text-base font-semibold text-[var(--koya-ink)]">
+              Fill from a call summary
+            </span>
+            <p className="mt-0.5 text-sm text-[var(--koya-muted)]">
+              Paste notes or upload a document — Claude fills what it can find.
             </p>
-            <Button type="button" onClick={onExtractFromFile} disabled={pending}>
-              {pending ? "Extracting…" : "Extract with AI"}
-            </Button>
           </div>
-        )}
-      </div>
+          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[var(--koya-muted)] transition group-open:rotate-180">
+            ▾
+          </span>
+        </div>
+      </summary>
+      <div className="border-t border-[var(--koya-line)] px-4 py-4">{body}</div>
     </details>
   );
 }

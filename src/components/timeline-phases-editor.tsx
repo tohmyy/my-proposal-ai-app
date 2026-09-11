@@ -18,12 +18,16 @@ export function TimelinePhasesEditor({
   phases,
   onChange,
   errorNote,
+  warnNote,
 }: {
   phases: TimelinePhase[];
   onChange: (phases: TimelinePhase[]) => void;
   errorNote?: string;
+  warnNote?: string;
 }) {
   const rows = phases.length > 0 ? phases : [emptyPhase(1)];
+  const note = errorNote || warnNote;
+  const isWarn = !errorNote && Boolean(warnNote);
 
   function updateAt(index: number, patch: Partial<TimelinePhase>) {
     const next = rows.map((row, i) =>
@@ -55,7 +59,11 @@ export function TimelinePhasesEditor({
   return (
     <div className="space-y-3">
       <div>
-        <Label className={errorNote ? "text-rose-800" : undefined}>
+        <Label
+          className={
+            errorNote ? "text-rose-800" : isWarn ? "text-amber-900" : undefined
+          }
+        >
           Timeline phases
         </Label>
         <p className="mt-1 text-xs text-[var(--koya-muted)]">
@@ -75,7 +83,11 @@ export function TimelinePhasesEditor({
             key={index}
             className={cn(
               "rounded-lg border bg-white/60 p-3",
-              errorNote ? "border-rose-500 bg-rose-50/30" : "border-[var(--koya-line)]",
+              errorNote
+                ? "border-rose-500 bg-rose-50/30"
+                : isWarn
+                  ? "border-amber-400 bg-amber-50/40"
+                  : "border-[var(--koya-line)]",
             )}
           >
             <div className="mb-2 flex items-center justify-between">
@@ -109,6 +121,8 @@ export function TimelinePhasesEditor({
                   className={cn(
                     errorNote &&
                       "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                    isWarn &&
+                      "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
                   )}
                 />
               </div>
@@ -127,6 +141,8 @@ export function TimelinePhasesEditor({
                   className={cn(
                     errorNote &&
                       "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                    isWarn &&
+                      "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
                   )}
                 />
               </div>
@@ -147,6 +163,8 @@ export function TimelinePhasesEditor({
                   className={cn(
                     errorNote &&
                       "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                    isWarn &&
+                      "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
                   )}
                 />
               </div>
@@ -154,7 +172,16 @@ export function TimelinePhasesEditor({
           </li>
         ))}
       </ul>
-      {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
+      {note && (
+        <p
+          className={cn(
+            "text-sm",
+            errorNote ? "text-rose-700" : "text-amber-800",
+          )}
+        >
+          {note}
+        </p>
+      )}
       <Button type="button" variant="ghost" size="sm" onClick={addRow}>
         <Plus className="h-4 w-4" />
         Add phase

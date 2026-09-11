@@ -33,6 +33,60 @@ import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
 
+type EntryPath = "choose" | "manual" | "paste" | "upload";
+
+const EXTRACTION_WARN = "Not found in the call summary — please fill in.";
+
+/** Normalize Claude notFound keys (camelCase or snake_case) to form control ids. */
+function normalizeExtractionNotFound(keys: string[]): Set<string> {
+  const out = new Set<string>();
+  for (const raw of keys) {
+    const k = raw.trim();
+    const camel = k.includes("_")
+      ? k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+      : k;
+    const lower = camel.toLowerCase();
+    if (lower === "timeline" || lower === "proposedtimeline") {
+      out.add("proposedTimeline");
+      out.add("timelinePhases");
+    } else if (lower === "pricing" || lower === "price") {
+      out.add("proposedPrice");
+      out.add("priceRange");
+    } else if (lower === "timelinephases") {
+      out.add("timelinePhases");
+    } else if (lower === "recommendedservices") {
+      out.add("recommendedServices");
+    } else if (lower === "clientneedssummary") {
+      out.add("clientNeedsSummary");
+    } else if (lower === "projectscope") {
+      out.add("projectScope");
+    } else if (lower === "salespersonname") {
+      out.add("salespersonName");
+    } else if (lower === "clientname") {
+      out.add("clientName");
+    } else if (lower === "clientemail") {
+      out.add("clientEmail");
+    } else if (lower === "companyname") {
+      out.add("companyName");
+    } else if (lower === "dateofcall") {
+      out.add("dateOfCall");
+    } else if (lower === "proposedprice") {
+      out.add("proposedPrice");
+    } else if (lower === "pricerange") {
+      out.add("priceRange");
+    } else if (lower === "pricingnotes") {
+      out.add("pricingNotes");
+    } else if (lower === "goals") {
+      out.add("goals");
+    } else if (lower === "currency") {
+      out.add("currency");
+    } else {
+      out.add(camel);
+    }
+  }
+  return out;
+}
+
 type IntakeFormProps = {
   action: (
     formData: FormData,
@@ -94,6 +148,14 @@ export function IntakeForm({
   );
   const [pending, setPending] = useState(false);
   const toast = useToast();
+  /** New-proposal only: pick how to start before showing the full form. */
+  const [entryPath, setEntryPath] = useState<EntryPath>(
+    initial ? "manual" : "choose",
+  );
+  /** Control ids Claude listed in notFound — amber highlights until filled. */
+  const [extractionMissing, setExtractionMissing] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // Snapshot of the form's already-defaulted first-render shape, used to
   // detect unsaved changes. Lazy so it's captured exactly once, from the
@@ -178,6 +240,18 @@ export function IntakeForm({
 
   function setField(key: keyof typeof values, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
+    if (value.trim()) {
+      setExtractionMissing((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  function extractionWarn(controlId: string): string | undefined {
+    return extractionMissing.has(controlId) ? EXTRACTION_WARN : undefined;
   }
 
   /**
@@ -234,6 +308,8 @@ export function IntakeForm({
         })),
       );
     }
+
+    setExtractionMissing(normalizeExtractionNotFound(data.notFound ?? []));
   }
 
   async function onSubmit(formData: FormData) {
@@ -278,11 +354,90 @@ export function IntakeForm({
     onRegenerate: handleRegenerate,
   };
 
+  const showEntryChooser = !initial && entryPath === "choose";
+  const extractMode =
+    entryPath === "paste" ? "text" : entryPath === "upload" ? "file" : undefined;
+  const showEmbeddedExtract =
+    entryPath === "paste" || entryPath === "upload";
+
+  if (showEntryChooser) {
+    return (
+      <div className="space-y-6 animate-in-up">
+        <div>
+          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+            How do you want to start?
+          </h2>
+          <p className="mt-1 text-sm text-[var(--koya-muted)]">
+            Pick one path — you can still edit every field before saving.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <EntryChoiceCard
+            title="Fill manually"
+            description="Type intake fields yourself, the usual way."
+            onClick={() => setEntryPath("manual")}
+          />
+          <EntryChoiceCard
+            title="Paste call summary"
+            description="Drop in raw notes — Claude extracts what it can."
+            onClick={() => setEntryPath("paste")}
+          />
+          <EntryChoiceCard
+            title="Upload document"
+            description="PDF or .txt / .md from the discovery call."
+            onClick={() => setEntryPath("upload")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form action={onSubmit} className="space-y-10 animate-in-up">
+      {!initial && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <p className="text-[var(--koya-muted)]">
+            {entryPath === "manual" && "Starting with manual entry."}
+            {entryPath === "paste" && "Starting from a pasted call summary."}
+            {entryPath === "upload" && "Starting from an uploaded document."}
+          </p>
+          <button
+            type="button"
+            className="font-semibold text-[var(--koya-accent)] underline-offset-2 hover:underline"
+            onClick={() => {
+              setEntryPath("choose");
+              setExtractionMissing(new Set());
+            }}
+          >
+            Change start method
+          </button>
+        </div>
+      )}
+
       <IntakeFormActions {...actionsProps} />
 
-      <IntakeExtractionPanel onApply={applyExtractedIntake} />
+      {showEmbeddedExtract ? (
+        <IntakeExtractionPanel
+          onApply={applyExtractedIntake}
+          mode={extractMode}
+          variant="embedded"
+        />
+      ) : (
+        <IntakeExtractionPanel
+          onApply={applyExtractedIntake}
+          variant="collapsible"
+        />
+      )}
+
+      {extractionMissing.size > 0 && (
+        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Some fields weren&rsquo;t in the source</p>
+          <p className="mt-1 text-amber-900/90">
+            Amber-highlighted fields below were listed as not found — fill them
+            in before generate if they&rsquo;re required.
+          </p>
+        </div>
+      )}
 
       {hasClarification && (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-950">
@@ -396,6 +551,7 @@ export function IntakeForm({
             value={values.salespersonName}
             onChange={(v) => setField("salespersonName", v)}
             errorNote={fieldErrors.salespersonName}
+            warnNote={extractionWarn("salespersonName")}
           />
           <Field
             id="clientName"
@@ -403,6 +559,7 @@ export function IntakeForm({
             value={values.clientName}
             onChange={(v) => setField("clientName", v)}
             errorNote={fieldErrors.clientName}
+            warnNote={extractionWarn("clientName")}
           />
           <Field
             id="clientEmail"
@@ -411,6 +568,7 @@ export function IntakeForm({
             value={values.clientEmail}
             onChange={(v) => setField("clientEmail", v)}
             errorNote={fieldErrors.clientEmail}
+            warnNote={extractionWarn("clientEmail")}
           />
           <Field
             id="companyName"
@@ -418,6 +576,7 @@ export function IntakeForm({
             value={values.companyName}
             onChange={(v) => setField("companyName", v)}
             errorNote={fieldErrors.companyName}
+            warnNote={extractionWarn("companyName")}
           />
           <Field
             id="dateOfCall"
@@ -427,6 +586,7 @@ export function IntakeForm({
             onChange={(v) => setField("dateOfCall", v)}
             max={localTodayIsoDate()}
             errorNote={fieldErrors.dateOfCall}
+            warnNote={extractionWarn("dateOfCall")}
           />
         </div>
       </section>
@@ -449,6 +609,7 @@ export function IntakeForm({
             onChange={(v) => setField("clientNeedsSummary", v)}
             rows={4}
             errorNote={fieldErrors.clientNeedsSummary}
+            warnNote={extractionWarn("clientNeedsSummary")}
           />
           <Area
             id="projectScope"
@@ -458,22 +619,45 @@ export function IntakeForm({
             onChange={(v) => setField("projectScope", v)}
             rows={4}
             errorNote={fieldErrors.projectScope}
+            warnNote={extractionWarn("projectScope")}
           />
           <StringListEditor
             label="Goals and objectives"
             name="goalsJson"
             items={goals}
-            onChange={setGoals}
+            onChange={(items) => {
+              setGoals(items);
+              if (items.some((g) => g.trim())) {
+                setExtractionMissing((prev) => {
+                  if (!prev.has("goals")) return prev;
+                  const next = new Set(prev);
+                  next.delete("goals");
+                  return next;
+                });
+              }
+            }}
             placeholder="e.g. Reduce manual reporting"
             errorNote={fieldErrors.goals}
+            warnNote={extractionWarn("goals")}
           />
           <StringListEditor
             label="Recommended services or deliverables"
             name="recommendedServicesJson"
             items={services}
-            onChange={setServices}
+            onChange={(items) => {
+              setServices(items);
+              if (items.some((s) => s.trim())) {
+                setExtractionMissing((prev) => {
+                  if (!prev.has("recommendedServices")) return prev;
+                  const next = new Set(prev);
+                  next.delete("recommendedServices");
+                  return next;
+                });
+              }
+            }}
             placeholder="e.g. Discovery workshop"
             errorNote={fieldErrors.recommendedServices}
+            warnNote={extractionWarn("recommendedServices")}
           />
         </div>
       </section>
@@ -503,11 +687,30 @@ export function IntakeForm({
           rows={3}
           placeholder="e.g. 6–8 weeks from kickoff, including feedback cycles"
           errorNote={fieldErrors.proposedTimeline}
+          warnNote={extractionWarn("proposedTimeline")}
         />
         <TimelinePhasesEditor
           phases={timelinePhases}
-          onChange={setTimelinePhases}
+          onChange={(phases) => {
+            setTimelinePhases(phases);
+            if (
+              phases.some(
+                (p) =>
+                  p.label?.trim() ||
+                  p.duration?.trim() ||
+                  p.deliveryWindow?.trim(),
+              )
+            ) {
+              setExtractionMissing((prev) => {
+                if (!prev.has("timelinePhases")) return prev;
+                const next = new Set(prev);
+                next.delete("timelinePhases");
+                return next;
+              });
+            }
+          }}
           errorNote={fieldErrors.timelinePhases}
+          warnNote={extractionWarn("timelinePhases")}
         />
       </section>
 
@@ -528,12 +731,23 @@ export function IntakeForm({
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
+            <Label
+              htmlFor="currency"
+              className={
+                extractionWarn("currency") ? "text-amber-900" : undefined
+              }
+            >
+              Currency
+            </Label>
             <Select
               id="currency"
               name="currency"
               value={values.currency}
               onChange={(e) => setField("currency", e.target.value)}
+              className={cn(
+                extractionWarn("currency") &&
+                  "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
+              )}
             >
               {CURRENCIES.map((code) => (
                 <option key={code} value={code}>
@@ -541,6 +755,9 @@ export function IntakeForm({
                 </option>
               ))}
             </Select>
+            {extractionWarn("currency") && (
+              <p className="text-sm text-amber-800">{EXTRACTION_WARN}</p>
+            )}
           </div>
           <Field
             id="proposedPrice"
@@ -551,6 +768,7 @@ export function IntakeForm({
             invalid={Boolean(
               fieldErrors.proposedPrice || fieldErrors.priceRange,
             )}
+            warnNote={extractionWarn("proposedPrice")}
           />
           <Field
             id="priceRange"
@@ -561,6 +779,7 @@ export function IntakeForm({
             invalid={Boolean(
               fieldErrors.proposedPrice || fieldErrors.priceRange,
             )}
+            warnNote={extractionWarn("priceRange")}
           />
         </div>
         {(fieldErrors.proposedPrice || fieldErrors.priceRange) && (
@@ -580,29 +799,17 @@ export function IntakeForm({
           rows={3}
           placeholder="Payment terms, exclusions, assumptions…"
           errorNote={fieldErrors.pricingNotes}
+          warnNote={extractionWarn("pricingNotes")}
         />
       </section>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
-            Supporting material
-          </h2>
-          <p className="mt-1 text-sm text-[var(--koya-muted)]">
-            Paste call notes or excerpts. Used in generation when relevant.
-          </p>
-        </div>
-        <Area
-          id="supportingMaterial"
-          label="Notes / excerpts"
-          optional
-          value={values.supportingMaterial}
-          onChange={(v) => setField("supportingMaterial", v)}
-          rows={5}
-          placeholder="Paste distinctive phrases or constraints from the discovery call…"
-          errorNote={fieldErrors.supportingMaterial}
-        />
-      </section>
+      {/* Call notes live in "Fill from a call summary" and are stored in
+          supportingMaterial on extract — no separate paste field. */}
+      <input
+        type="hidden"
+        name="supportingMaterial"
+        value={values.supportingMaterial}
+      />
 
       <div className="border-t border-[var(--koya-line)] pt-6">
         <IntakeFormActions {...actionsProps} />
@@ -697,6 +904,31 @@ function IntakeFormActions({
   );
 }
 
+function EntryChoiceCard({
+  title,
+  description,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-[var(--koya-line)] bg-white px-4 py-5 text-left transition hover:border-[var(--koya-accent)] hover:bg-teal-50/40"
+    >
+      <span className="block font-[family-name:var(--font-syne)] text-base font-semibold text-[var(--koya-ink)]">
+        {title}
+      </span>
+      <span className="mt-1.5 block text-sm leading-snug text-[var(--koya-muted)]">
+        {description}
+      </span>
+    </button>
+  );
+}
+
 function Field({
   id,
   label,
@@ -707,6 +939,7 @@ function Field({
   hard,
   placeholder,
   errorNote,
+  warnNote,
   invalid,
   max,
 }: {
@@ -719,13 +952,20 @@ function Field({
   hard?: boolean;
   placeholder?: string;
   errorNote?: string;
+  warnNote?: string;
   invalid?: boolean;
   max?: string;
 }) {
   const showError = Boolean(errorNote || invalid);
+  const showWarn = !showError && Boolean(warnNote);
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className={showError ? "text-rose-800" : undefined}>
+      <Label
+        htmlFor={id}
+        className={
+          showError ? "text-rose-800" : showWarn ? "text-amber-900" : undefined
+        }
+      >
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -745,14 +985,19 @@ function Field({
         value={value}
         max={max}
         placeholder={placeholder}
-        aria-invalid={showError}
+        aria-invalid={showError || showWarn}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
           showError &&
             "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+          showWarn &&
+            "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
         )}
       />
       {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
+      {!errorNote && warnNote && (
+        <p className="text-sm text-amber-800">{warnNote}</p>
+      )}
     </div>
   );
 }
@@ -767,6 +1012,7 @@ function Area({
   optional,
   placeholder,
   errorNote,
+  warnNote,
 }: {
   id: string;
   label: string;
@@ -777,10 +1023,17 @@ function Area({
   optional?: boolean;
   placeholder?: string;
   errorNote?: string;
+  warnNote?: string;
 }) {
+  const showWarn = !errorNote && Boolean(warnNote);
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className={errorNote ? "text-rose-800" : undefined}>
+      <Label
+        htmlFor={id}
+        className={
+          errorNote ? "text-rose-800" : showWarn ? "text-amber-900" : undefined
+        }
+      >
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -799,14 +1052,19 @@ function Area({
         rows={rows}
         value={value}
         placeholder={placeholder}
-        aria-invalid={Boolean(errorNote)}
+        aria-invalid={Boolean(errorNote || warnNote)}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
           errorNote &&
             "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+          showWarn &&
+            "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
         )}
       />
       {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
+      {!errorNote && warnNote && (
+        <p className="text-sm text-amber-800">{warnNote}</p>
+      )}
     </div>
   );
 }

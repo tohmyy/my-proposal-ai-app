@@ -14,6 +14,7 @@ export function StringListEditor({
   placeholder = "Add an item…",
   hard,
   errorNote,
+  warnNote,
 }: {
   label: string;
   name: string;
@@ -22,8 +23,11 @@ export function StringListEditor({
   placeholder?: string;
   hard?: boolean;
   errorNote?: string;
+  warnNote?: string;
 }) {
   const rows = items.length > 0 ? items : [""];
+  const note = errorNote || warnNote;
+  const isWarn = !errorNote && Boolean(warnNote);
 
   function updateAt(index: number, value: string) {
     const next = [...rows];
@@ -42,7 +46,11 @@ export function StringListEditor({
 
   return (
     <div className="space-y-2">
-      <Label className={errorNote ? "text-rose-800" : undefined}>
+      <Label
+        className={
+          errorNote ? "text-rose-800" : isWarn ? "text-amber-900" : undefined
+        }
+      >
         {label}
         {hard && (
           <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-[var(--koya-accent)]">
@@ -63,10 +71,12 @@ export function StringListEditor({
               placeholder={placeholder}
               onChange={(e) => updateAt(index, e.target.value)}
               aria-label={`${label} ${index + 1}`}
-              aria-invalid={Boolean(errorNote)}
+              aria-invalid={Boolean(note)}
               className={cn(
                 errorNote &&
                   "border-rose-500 focus-visible:ring-rose-400 bg-rose-50/40",
+                isWarn &&
+                  "border-amber-400 focus-visible:ring-amber-400 bg-amber-50/50",
               )}
             />
             <Button
@@ -82,7 +92,16 @@ export function StringListEditor({
           </li>
         ))}
       </ul>
-      {errorNote && <p className="text-sm text-rose-700">{errorNote}</p>}
+      {note && (
+        <p
+          className={cn(
+            "text-sm",
+            errorNote ? "text-rose-700" : "text-amber-800",
+          )}
+        >
+          {note}
+        </p>
+      )}
       <Button type="button" variant="ghost" size="sm" onClick={addRow}>
         <Plus className="h-4 w-4" />
         Add item

@@ -12,8 +12,8 @@ export default function NewProposalPage() {
           New proposal
         </h1>
         <p className="text-[var(--koya-muted)]">
-          Capture the discovery call. Hard commercial fields are flagged if
-          missing — you can still save a draft.
+          Capture the discovery call. Choose how to start — paste notes, upload
+          a document, or fill fields by hand.
         </p>
       </header>
       <IntakeForm action={createProposal} submitLabel="Create draft" />
