@@ -13,9 +13,15 @@ import {
 } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { GenerateButton } from "@/components/generate-button";
+import { SendEmailButton } from "@/components/send-email-button";
+import { GeneratePdfButton } from "@/components/generate-pdf-button";
 import type { TimelinePhase } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
+// PDF generation launches headless Chromium and uploads to Storage, which
+// can take several seconds — Vercel's Server Action timeout for this page
+// is controlled here, not in the action file itself.
+export const maxDuration = 60;
 
 export default async function ProposalHubPage({
   params,
@@ -92,6 +98,20 @@ export default async function ProposalHubPage({
               >
                 Edit sections
               </Link>
+              <GeneratePdfButton proposalId={id} />
+              {proposal.pdfUrl && (
+                <a
+                  href={proposal.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 items-center rounded-md border border-[var(--koya-line)] bg-white/70 px-4 text-sm font-semibold transition hover:border-[var(--koya-ink)]"
+                >
+                  Download PDF
+                </a>
+              )}
+              {proposal.status === "approved" && (
+                <SendEmailButton proposalId={id} />
+              )}
             </>
           )}
           <GenerateButton proposalId={id} />

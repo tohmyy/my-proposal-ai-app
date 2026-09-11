@@ -3,8 +3,11 @@
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Resend } from "resend";
 import { db } from "@/db";
-import { proposals, proposalEvents } from "@/db/schema";
+import { proposals, proposalEvents, type Proposal } from "@/db/schema";
+import { getAppBaseUrl } from "@/lib/app-url";
+import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
 import {
   displayTitle,
   getMissingHardFields,
@@ -334,4 +337,135 @@ export async function logProposalExport(
   revalidatePath(`/proposals/${proposalId}`);
   revalidatePath(`/proposals/${proposalId}/preview`);
   return { ok: true };
+}
+
+/**
+ * Plain-text body matching assets/client-email-template.md's structure.
+ * The proposal link is always included; sendProposalEmail additionally
+ * attaches a freshly rendered PDF when generation succeeds (see below).
+ */
+function buildProposalEmail(proposal: Proposal, proposalLink: string) {
+  const companyName = proposal.companyName?.trim() || "your company";
+  const clientName = proposal.clientName?.trim() || "there";
+  const salespersonName = proposal.salespersonName?.trim() || "Koya Talent";
+
+  const subject = `Proposal for ${companyName}`;
+  const text = `Hi ${clientName},
+
+Thanks again for taking the time to speak with us. Based on our conversation, we have put together a customized proposal for your review.
+
+You can view the proposal here: ${proposalLink}
+
+This document outlines the project scope, timeline, pricing details, and recommended approach.
+
+If you have any questions or would like to make adjustments, feel free to reach out. We are happy to iterate with you.
+
+Looking forward to hearing your thoughts.
+
+Best regards,
+
+${salespersonName}
+
+Koya Talent`;
+
+  return { subject, text };
+}
+
+export async function sendProposalEmail(
+  proposalId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  async function fail(error: string, step: string) {
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "failed",
+      message: `Send to client failed: ${error}`,
+      meta: { step },
+    });
+    revalidatePath(`/proposals/${proposalId}`);
+    return { ok: false as const, error };
+  }
+
+  if (proposal.status !== "approved") {
+    return fail("Proposal must be approved before it can be sent.", "send_email");
+  }
+
+  const clientEmail = proposal.clientEmail?.trim();
+  if (!clientEmail) {
+    return fail("No client email on file — add one in intake first.", "send_email");
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return fail(
+      "Email service is not configured (RESEND_API_KEY is not set).",
+      "send_email",
+    );
+  }
+
+  const fromAddress = process.env.RESEND_FROM_EMAIL || "proposals@example.com";
+  const proposalLink = `${getAppBaseUrl()}/proposals/${proposalId}/preview`;
+  const { subject, text } = buildProposalEmail(proposal, proposalLink);
+
+  // PDF attachment is best-effort: a rendering hiccup shouldn't block the
+  // client from getting the proposal at all, since the link above already
+  // gives them access — see the "graceful degradation" design note.
+  let attachmentBuffer: Buffer | null = null;
+  try {
+    const { buffer } = await renderAndStoreProposalPdf(proposalId);
+    attachmentBuffer = buffer;
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "pdf_generated",
+      message: "Rendered PDF for email attachment.",
+      meta: { method: "server" },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown PDF error";
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "failed",
+      message: `PDF generation for email failed: ${message}`,
+      meta: { step: "generate_pdf" },
+    });
+  }
+
+  try {
+    const resend = new Resend(apiKey);
+    const result = await resend.emails.send({
+      from: fromAddress,
+      to: clientEmail,
+      subject,
+      text,
+      ...(attachmentBuffer
+        ? { attachments: [{ filename: "proposal.pdf", content: attachmentBuffer }] }
+        : {}),
+    });
+
+    if (result.error) {
+      return fail(result.error.message, "send_email");
+    }
+
+    await db
+      .update(proposals)
+      .set({ status: "sent", updatedAt: new Date() })
+      .where(eq(proposals.id, proposalId));
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "email_sent",
+      message: `Proposal emailed to ${clientEmail}.`,
+      meta: { to: clientEmail, resendId: result.data?.id },
+    });
+
+    revalidateProposalPaths(proposalId);
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown email error";
+    return fail(message, "send_email");
+  }
 }

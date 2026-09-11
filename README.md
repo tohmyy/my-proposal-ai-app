@@ -21,9 +21,11 @@ Week 3 proposal application: intake → Claude generate → human review → app
 
 ## Current status
 
-See [PHASES.md](./PHASES.md). Phase 2 (Claude generate + TipTap) is done; **Phase 3** is next (section regeneration).
+See [PHASES.md](./PHASES.md). Phases 1–5 are done; **Phase 6** is next (hardening, evidence, deploy).
 
 **Phase 2 env:** set `ANTHROPIC_API_KEY` in `.env` / `.env.local`, then restart `npm run dev`.
+
+**Phase 5 env (PDF + email delivery):** set `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `NEXT_PUBLIC_APP_URL` (used both to build the proposal link in the client email and as the internal navigation target for server-side PDF rendering) in `.env` / `.env.local`, then restart `npm run dev`. Without `RESEND_API_KEY`, "Send to client" fails cleanly with a clear error instead of sending. Clicking **Generate PDF** on a proposal's hub page renders it server-side with headless Chromium and uploads it to a public Supabase Storage bucket (`proposal-pdfs`), setting `pdf_url`; a **Download PDF** link then appears on the hub. Sending an email always re-renders a fresh PDF and attaches it — if that render fails, the email still sends with just the proposal link. The browser Print/Save-as-PDF action on `/proposals/[id]/preview` remains available as a client-side fallback (see TDD.md §11 item 3). The serverless Chromium code path (`@sparticuz/chromium` + `playwright-core`) only runs on Vercel/Lambda; locally, the full `playwright` package (with its own managed Chromium) is used instead.
 
 ## Setup
 
@@ -39,7 +41,7 @@ Required for Phase 1:
 - `DATABASE_URL` — Supabase Postgres URI (Settings → Database)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (used later for Storage; safe to set now)
+- `SUPABASE_SERVICE_ROLE_KEY` (used for Storage — PDF upload — from Phase 5 onward; safe to set now)
 
 3. Push schema:
 

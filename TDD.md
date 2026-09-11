@@ -388,7 +388,7 @@ UI must show:
 
 1. **Supporting material** — textarea paste only vs file upload vs both.  
 2. **Partial generation when gaps exist** — block until required fields filled vs draft with `[GAP]` markers.  
-3. **PDF rendering on Vercel** — Playwright/serverless vs external render vs client print fallback.  
+3. ~~**PDF rendering on Vercel** — Playwright/serverless vs external render vs client print fallback.~~ **Resolved (2026-09-11):** real server-side rendering built — `playwright-core` + `@sparticuz/chromium` on Vercel/Lambda, full `playwright` locally, selected at runtime by `process.env.VERCEL`/`AWS_LAMBDA_FUNCTION_NAME`. The rendered PDF is uploaded to a **public** Supabase Storage bucket (`proposal-pdfs`) and `proposals.pdf_url` is set; the client-print fallback (`/preview` + browser Print) is kept alongside it as TDD allows. Email delivery attaches this PDF (re-rendered fresh on every send) and still includes the proposal link; if rendering fails, the send degrades gracefully to link-only. The serverless Chromium code path was built and reviewed against both packages' documented APIs but could not be executed on the Windows dev machine used to build this — only the local-Chromium path was run end-to-end here; full confidence requires an actual Vercel deploy.  
 4. **ORM** — Prisma vs Drizzle.  
 5. **DOCX export** — out of MVP vs stretch.  
 6. **Exact Claude model** — model id for cost/quality.

@@ -2,7 +2,7 @@
 
 Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: do the **next incomplete** phase only unless the user explicitly expands scope.
 
-**Current:** Phase 4 complete. **Next:** finish Phase 5 (server PDF + email delivery).
+**Current:** Phase 5 complete (server-side Chromium PDF + Supabase Storage + email attachment live). **Next:** Phase 6 (hardening, evidence, deploy).
 
 ---
 
@@ -70,17 +70,19 @@ Track implementation against [PRD.md](./PRD.md) and [TDD.md](./TDD.md). Agents: 
 
 ## Phase 5 — Preview, PDF, email, storage
 
-**Status:** Partial — preview print export shipped
+**Status:** Done — real server-side Chromium PDF rendering, Supabase Storage upload, and email attachment all built and verified locally (see TDD.md §11 item 3)
 
-- [x] `/proposals/[id]/preview` with **Export PDF** (browser Print / Save as PDF + print CSS)
-- [x] Event `pdf_generated` with `meta.method: "print"` for evidence logging
-- [ ] Server HTML → PDF; store in Supabase Storage; set `pdf_url`
-- [ ] Resend email with PDF attachment (client email template)
-- [ ] Hub download of server-generated PDF; events `email_sent`, `failed`
+- [x] `/proposals/[id]/preview` with **Export PDF** (browser Print / Save as PDF + print CSS) — kept as a client-side fallback alongside the new server PDF, per TDD.md
+- [x] `/proposals/[id]/preview?print=1` — a dedicated static-rendering path (`editable={false}` on `ProposalDocument`, zero client hydration) used only by the headless-Chromium capture, so the normal interactive preview is unaffected
+- [x] Server HTML → PDF → Supabase Storage → `pdf_url`: `src/lib/pdf/browser.ts` launches Chromium (full `playwright` locally; `playwright-core` + `@sparticuz/chromium` on Vercel/Lambda, selected via `process.env.VERCEL`/`AWS_LAMBDA_FUNCTION_NAME`), `src/lib/pdf/proposal-pdf.ts` renders via `page.emulateMedia({ media: "print" })` + `page.pdf(...)`, uploads to a **public** `proposal-pdfs` Storage bucket (no auth in this app, so signed URLs would only go stale — see the plan's design notes), and sets `proposals.pdfUrl`
+- [x] Event `pdf_generated` with `meta.method: "server"` for evidence logging (both for a standalone hub-triggered render and for a render done as part of sending an email)
+- [x] Hub **Generate PDF** button (`src/components/generate-pdf-button.tsx`) + conditional **Download PDF** link once `pdfUrl` is set — verified end-to-end: a real proposal renders a real `%PDF-1.4` file, uploaded to the actual Supabase project, downloadable via a stable public URL
+- [x] Resend email **with PDF attachment**: `sendProposalEmail` always re-renders a fresh PDF before sending (freshness over trusting a possibly-stale `pdfUrl`) and attaches it; if rendering/upload fails, the send still proceeds with just the proposal link (graceful degradation — the link is the baseline, the attachment is the enhancement). Gated on `status === "approved"`; on success sets `sent` and logs `email_sent`; every failure path (not approved, no client email, `RESEND_API_KEY` unset, PDF render failure, Resend error) logs a `failed` event with a clear message.
+- [x] Shared `getAppBaseUrl()` (`src/lib/app-url.ts`, `NEXT_PUBLIC_APP_URL` → `VERCEL_URL` → `localhost:3000`) used by both the email's proposal link and the internal Chromium navigation target, so the two can't silently diverge.
 
-**Needs (remaining):** `RESEND_API_KEY`, storage bucket, server PDF renderer (Playwright / Chromium) when replacing print fallback for email attachments
+**Needs:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (see README). `RESEND_API_KEY` is **not configured in this dev environment**, so the send-succeeds path itself wasn't exercised — but with a dummy key set temporarily for verification, the PDF-render-and-attach step was confirmed to run and produce a real buffer before Resend's own auth check cleanly rejected the fake key, then reverted. The Vercel-only serverless Chromium code path (`@sparticuz/chromium` + `playwright-core`) **cannot run on this Windows dev machine at all** — it was built carefully against both packages' documented APIs and this Next.js version's `serverExternalPackages`/`maxDuration` docs, but is only truly confirmed once deployed to Vercel.
 
-**Exit:** Approve → PDF → email/download → `sent`; failures clear, content preserved.
+**Exit:** Approve → Generate PDF (or Send, which regenerates one) → real PDF in Supabase Storage, downloadable from the hub and attached to the client email → `sent`; failures clear, content preserved.
 
 ---
 

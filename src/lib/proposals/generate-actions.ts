@@ -8,6 +8,7 @@ import { generateProposalContent } from "@/lib/ai/generate";
 import { markdownToHtml, sanitizeProposalHtml } from "@/lib/ai/html";
 import { REWORD_SECTION_INSTRUCTION, SECTION_CATALOG } from "@/lib/ai/prompts";
 import { regenerateSection } from "@/lib/ai/regenerate";
+import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
 import { getProposal } from "@/lib/proposals/actions";
 import {
   getStaleSections,
@@ -372,6 +373,58 @@ export async function regenerateAffectedSections(
       type: "failed",
       message: `Regenerate sections failed: ${message}`,
       meta: { step: "regenerate", attempted: toRegenerate },
+    });
+
+    revalidatePath(`/proposals/${proposalId}`);
+    return { ok: false, error: message };
+  }
+}
+
+export type GeneratePdfResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
+
+/**
+ * Manually (re)renders the proposal to PDF via headless Chromium and stores
+ * it in Supabase Storage, independent of sending an email — used by the
+ * hub's "Generate PDF" button so a PDF can be produced/downloaded without
+ * necessarily emailing it. `sendProposalEmail` does this same render itself
+ * right before sending, so the two paths don't need to depend on each other.
+ */
+export async function generateProposalPdf(
+  proposalId: string,
+): Promise<GeneratePdfResult> {
+  const proposal = await getProposal(proposalId);
+  if (!proposal) {
+    return { ok: false, error: "Proposal not found" };
+  }
+
+  const sections = await listSections(proposalId);
+  if (sections.length === 0) {
+    return { ok: false, error: "Generate the proposal first" };
+  }
+
+  try {
+    const { url } = await renderAndStoreProposalPdf(proposalId);
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "pdf_generated",
+      message: "Generated PDF.",
+      meta: { method: "server" },
+    });
+
+    revalidatePath(`/proposals/${proposalId}`);
+    revalidatePath(`/proposals/${proposalId}/preview`);
+    return { ok: true, url };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "PDF generation failed";
+
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "failed",
+      message: `Generate PDF failed: ${message}`,
+      meta: { step: "generate_pdf" },
     });
 
     revalidatePath(`/proposals/${proposalId}`);

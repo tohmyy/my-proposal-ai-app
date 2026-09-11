@@ -13,10 +13,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ProposalPreviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ print?: string }>;
 }) {
   const { id } = await params;
+  const { print } = await searchParams;
+  const isPrintCapture = print === "1";
   const proposal = await getProposal(id);
   if (!proposal) notFound();
 
@@ -89,7 +93,11 @@ export default async function ProposalPreviewPage({
           </Link>
         </div>
       ) : (
-        <ProposalDocument proposal={proposal} sections={sections} />
+        <ProposalDocument
+          proposal={proposal}
+          sections={sections}
+          editable={!isPrintCapture}
+        />
       )}
     </div>
   );
