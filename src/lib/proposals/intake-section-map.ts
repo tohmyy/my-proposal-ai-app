@@ -75,6 +75,31 @@ export function sectionsAffectedByFields(
   );
 }
 
+/** Reverse of FIELD_TO_SECTIONS: which intake fields drive a given section. */
+export function fieldsRelevantToSection(
+  sectionKey: SectionKey,
+): (keyof IntakeInput)[] {
+  return (Object.keys(FIELD_TO_SECTIONS) as (keyof IntakeInput)[]).filter(
+    (field) => FIELD_TO_SECTIONS[field]?.includes(sectionKey),
+  );
+}
+
+/**
+ * The subset of an intake snapshot that actually drives a given section —
+ * used as the generation-cache key, so a match only requires the fields
+ * relevant to *this* section to line up, not the whole intake.
+ */
+export function sectionRelevantSnapshot(
+  intake: IntakeInput,
+  sectionKey: SectionKey,
+): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = {};
+  for (const field of fieldsRelevantToSection(sectionKey)) {
+    snapshot[field] = intake[field];
+  }
+  return snapshot;
+}
+
 export type StaleSectionsResult = {
   toRegenerate: SectionKey[];
   skippedHumanEdited: SectionKey[];
@@ -82,9 +107,12 @@ export type StaleSectionsResult = {
 
 /**
  * Sections whose driving intake fields changed since the proposal was last
- * (re)generated. Only applies to `in_review` proposals with a recorded
- * generation baseline; sections a human has hand-edited since are always
- * excluded so they're never silently overwritten.
+ * (re)generated. Applies regardless of the proposal's current status — a
+ * proposal can be edited after approval/send, and regenerating is what
+ * correctly moves it back to `in_review` for re-approval. Only requires a
+ * recorded generation baseline and at least one existing section; sections
+ * a human has hand-edited since are always excluded so they're never
+ * silently overwritten.
  */
 export function getStaleSections(
   proposal: Proposal,
@@ -92,7 +120,6 @@ export function getStaleSections(
 ): StaleSectionsResult {
   const empty: StaleSectionsResult = { toRegenerate: [], skippedHumanEdited: [] };
 
-  if (proposal.status !== "in_review") return empty;
   if (!proposal.lastGeneratedIntakeSnapshot) return empty;
   if (sections.length === 0) return empty;
 

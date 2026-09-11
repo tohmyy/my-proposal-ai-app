@@ -8,6 +8,8 @@ import {
   jsonb,
   boolean,
   uniqueIndex,
+  index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 export const proposalStatuses = [
@@ -93,6 +95,56 @@ export const proposalSections = pgTable(
   ],
 );
 
+export const sectionRevisionSources = [
+  "initial_generate",
+  "selective_regen",
+  "manual_reword",
+  "human_edit",
+  "restored",
+  "cache_hit",
+] as const;
+
+export type SectionRevisionSource = (typeof sectionRevisionSources)[number];
+
+/**
+ * Append-only history of every version a section has ever had — one row
+ * per AI write (initial generate / selective regen / manual reword / cache
+ * hit) and per human edit. Never mutated after insert. Serves both the
+ * generation cache (matching `fieldsSnapshot`) and the restorable version
+ * history UI.
+ */
+export const proposalSectionRevisions = pgTable(
+  "proposal_section_revisions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    proposalId: uuid("proposal_id")
+      .notNull()
+      .references(() => proposals.id, { onDelete: "cascade" }),
+    sectionKey: text("section_key").notNull(),
+    title: text("title").notNull(),
+    htmlContent: text("html_content").notNull().default(""),
+    fieldsSnapshot: jsonb("fields_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    source: text("source").$type<SectionRevisionSource>().notNull(),
+    humanEdited: boolean("human_edited").notNull().default(false),
+    restoredFromRevisionId: uuid("restored_from_revision_id").references(
+      (): AnyPgColumn => proposalSectionRevisions.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("proposal_section_revisions_lookup_idx").on(
+      table.proposalId,
+      table.sectionKey,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const proposalEvents = pgTable("proposal_events", {
   id: uuid("id").defaultRandom().primaryKey(),
   proposalId: uuid("proposal_id")
@@ -145,3 +197,4 @@ export type Proposal = typeof proposals.$inferSelect;
 export type NewProposal = typeof proposals.$inferInsert;
 export type ProposalSection = typeof proposalSections.$inferSelect;
 export type ProposalEvent = typeof proposalEvents.$inferSelect;
+export type ProposalSectionRevision = typeof proposalSectionRevisions.$inferSelect;

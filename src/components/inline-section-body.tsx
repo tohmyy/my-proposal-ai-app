@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useState, useTransition, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { SectionHistoryDialog } from "@/components/section-history-dialog";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
 import { useInlineEditSlot } from "@/components/inline-edit-context";
 import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
@@ -16,13 +17,14 @@ export function InlineSectionBody({
 }: {
   id: string;
   proposalId: string;
-  section: { id: string; key: string; htmlContent: string };
+  section: { id: string; key: string; title: string; htmlContent: string };
 }) {
   const [savedHtml, setSavedHtml] = useState(section.htmlContent || "<p></p>");
   const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLDivElement>(id);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [regenerating, startRegenerateTransition] = useTransition();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -101,6 +103,15 @@ export function InlineSectionBody({
           >
             {regenerating ? "Regenerating…" : "Regenerate"}
           </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setHistoryOpen(true)}
+            disabled={pending || regenerating}
+          >
+            History
+          </Button>
           <Button type="button" size="sm" onClick={save} disabled={pending || regenerating}>
             {pending ? "Saving…" : "Save"}
           </Button>
@@ -127,6 +138,18 @@ export function InlineSectionBody({
       >
         <EditorContent editor={editor} />
       </div>
+
+      <SectionHistoryDialog
+        proposalId={proposalId}
+        sectionKey={section.key}
+        sectionTitle={section.title}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        onRestored={(result) => {
+          setSavedHtml(result.htmlContent);
+          editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
+        }}
+      />
     </div>
   );
 }

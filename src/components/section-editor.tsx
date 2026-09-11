@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { SectionHistoryDialog } from "@/components/section-history-dialog";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
 import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,8 @@ export function SectionEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [regenerating, startRegenerateTransition] = useTransition();
+
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const editor = useEditor(
     {
@@ -138,6 +141,15 @@ export function SectionEditor({
             >
               {pending ? "Saving…" : "Save section"}
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryOpen(true)}
+              disabled={!active}
+            >
+              History
+            </Button>
           </div>
         </div>
 
@@ -150,6 +162,20 @@ export function SectionEditor({
         )}
         {error && <p className="text-sm text-rose-700">{error}</p>}
       </div>
+
+      {active && (
+        <SectionHistoryDialog
+          proposalId={proposalId}
+          sectionKey={active.key}
+          sectionTitle={active.title}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          onRestored={(result) => {
+            editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
+            setMessage(`Restored “${result.title}”.`);
+          }}
+        />
+      )}
     </div>
   );
 }

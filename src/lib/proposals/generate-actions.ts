@@ -3,7 +3,12 @@
 import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { proposalEvents, proposalSections, proposals } from "@/db/schema";
+import {
+  proposalEvents,
+  proposalSections,
+  proposals,
+  type SectionRevisionSource,
+} from "@/db/schema";
 import { generateProposalContent } from "@/lib/ai/generate";
 import { markdownToHtml, sanitizeProposalHtml } from "@/lib/ai/html";
 import { REWORD_SECTION_INSTRUCTION, SECTION_CATALOG } from "@/lib/ai/prompts";
@@ -14,7 +19,11 @@ import {
   getStaleSections,
   type SectionKey,
 } from "@/lib/proposals/intake-section-map";
-import { proposalToIntake } from "@/lib/proposals/types";
+import {
+  findCachedSectionRevision,
+  recordSectionRevision,
+} from "@/lib/proposals/section-revisions";
+import { proposalToIntake, type IntakeInput } from "@/lib/proposals/types";
 
 export type GenerateResult =
   | {
@@ -26,9 +35,51 @@ export type GenerateResult =
     }
   | { ok: false; error: string };
 
+async function writeSectionRow(
+  proposalId: string,
+  key: string,
+  title: string,
+  htmlContent: string,
+  position: number,
+) {
+  const existing = await db
+    .select({ id: proposalSections.id })
+    .from(proposalSections)
+    .where(
+      and(eq(proposalSections.proposalId, proposalId), eq(proposalSections.key, key)),
+    )
+    .limit(1);
+
+  if (existing[0]) {
+    await db
+      .update(proposalSections)
+      .set({
+        title,
+        htmlContent,
+        position,
+        humanEdited: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(proposalSections.id, existing[0].id));
+  } else {
+    await db.insert(proposalSections).values({
+      proposalId,
+      key,
+      title,
+      position,
+      htmlContent,
+      humanEdited: false,
+    });
+  }
+}
+
+/** For AI writes whose content is raw markdown (initial generate, selective
+ * regen, manual reword) — renders to HTML, persists, and records a revision. */
 async function upsertSections(
   proposalId: string,
   sections: { key: string; title: string; content: string }[],
+  source: SectionRevisionSource,
+  intake: IntakeInput,
 ): Promise<{ key: string; title: string; htmlContent: string }[]> {
   const persisted: { key: string; title: string; htmlContent: string }[] = [];
 
@@ -40,41 +91,50 @@ async function upsertSections(
     if (!html.trim() && !section.content.trim()) continue;
 
     const title = section.title || catalog.title;
-
-    const existing = await db
-      .select({ id: proposalSections.id })
-      .from(proposalSections)
-      .where(
-        and(
-          eq(proposalSections.proposalId, proposalId),
-          eq(proposalSections.key, section.key),
-        ),
-      )
-      .limit(1);
-
-    if (existing[0]) {
-      await db
-        .update(proposalSections)
-        .set({
-          title,
-          htmlContent: html,
-          position: catalog.position,
-          humanEdited: false,
-          updatedAt: new Date(),
-        })
-        .where(eq(proposalSections.id, existing[0].id));
-    } else {
-      await db.insert(proposalSections).values({
-        proposalId,
-        key: section.key,
-        title,
-        position: catalog.position,
-        htmlContent: html,
-        humanEdited: false,
-      });
-    }
+    await writeSectionRow(proposalId, section.key, title, html, catalog.position);
+    await recordSectionRevision(
+      proposalId,
+      { key: section.key, title, htmlContent: html },
+      source,
+      intake,
+    );
 
     persisted.push({ key: section.key, title, htmlContent: html });
+  }
+
+  return persisted;
+}
+
+/** For content that's already rendered HTML — a cache hit or a restore —
+ * skips markdown rendering entirely instead of round-tripping through it. */
+async function upsertSectionsFromHtml(
+  proposalId: string,
+  sections: { key: string; title: string; htmlContent: string }[],
+  source: SectionRevisionSource,
+  intake: IntakeInput,
+): Promise<{ key: string; title: string; htmlContent: string }[]> {
+  const persisted: { key: string; title: string; htmlContent: string }[] = [];
+
+  for (const section of sections) {
+    const catalog = SECTION_CATALOG.find((s) => s.key === section.key);
+    if (!catalog) continue;
+
+    const title = section.title || catalog.title;
+    await writeSectionRow(
+      proposalId,
+      section.key,
+      title,
+      section.htmlContent,
+      catalog.position,
+    );
+    await recordSectionRevision(
+      proposalId,
+      { key: section.key, title, htmlContent: section.htmlContent },
+      source,
+      intake,
+    );
+
+    persisted.push({ key: section.key, title, htmlContent: section.htmlContent });
   }
 
   return persisted;
@@ -96,7 +156,7 @@ export async function generateProposal(proposalId: string): Promise<GenerateResu
     const result = await generateProposalContent(intake);
 
     if (result.sections.length > 0) {
-      await upsertSections(proposalId, result.sections);
+      await upsertSections(proposalId, result.sections, "initial_generate", intake);
     }
 
     const nextStatus =
@@ -196,7 +256,7 @@ export async function saveSectionHtml(
 
   const sanitized = sanitizeProposalHtml(html);
   const existing = await db
-    .select({ id: proposalSections.id })
+    .select({ id: proposalSections.id, title: proposalSections.title })
     .from(proposalSections)
     .where(
       and(
@@ -223,6 +283,13 @@ export async function saveSectionHtml(
     .update(proposals)
     .set({ updatedAt: new Date() })
     .where(eq(proposals.id, proposalId));
+
+  await recordSectionRevision(
+    proposalId,
+    { key: sectionKey, title: existing[0].title, htmlContent: sanitized },
+    "human_edit",
+    null,
+  );
 
   await db.insert(proposalEvents).values({
     proposalId,
@@ -253,7 +320,7 @@ export async function saveSectionTitle(
   }
 
   const existing = await db
-    .select({ id: proposalSections.id })
+    .select({ id: proposalSections.id, htmlContent: proposalSections.htmlContent })
     .from(proposalSections)
     .where(
       and(
@@ -276,6 +343,13 @@ export async function saveSectionTitle(
     .update(proposals)
     .set({ updatedAt: new Date() })
     .where(eq(proposals.id, proposalId));
+
+  await recordSectionRevision(
+    proposalId,
+    { key: sectionKey, title: trimmed, htmlContent: existing[0].htmlContent },
+    "human_edit",
+    null,
+  );
 
   await db.insert(proposalEvents).values({
     proposalId,
@@ -328,20 +402,47 @@ export async function regenerateAffectedSections(
     }));
 
     for (const key of toRegenerate) {
-      const result = await regenerateSection(intake, currentSections, key);
-      await upsertSections(proposalId, [result]);
+      const cached = await findCachedSectionRevision(proposalId, key, intake);
 
+      let title: string;
+      let htmlContent: string;
+
+      if (cached) {
+        title = cached.title;
+        htmlContent = cached.htmlContent;
+        await upsertSectionsFromHtml(
+          proposalId,
+          [{ key, title, htmlContent }],
+          "cache_hit",
+          intake,
+        );
+      } else {
+        const result = await regenerateSection(intake, currentSections, key);
+        const persisted = await upsertSections(
+          proposalId,
+          [result],
+          "selective_regen",
+          intake,
+        );
+        title = persisted[0]?.title ?? result.title;
+        htmlContent = persisted[0]?.htmlContent ?? markdownToHtml(result.content);
+      }
+
+      // Updated regardless of source, so the next section in this batch
+      // sees this one's fresh content as context either way.
       currentSections = currentSections.map((s) =>
-        s.key === key
-          ? { key: result.key, title: result.title, content: result.content }
-          : s,
+        s.key === key ? { key, title, content: htmlContent } : s,
       );
 
       await db.insert(proposalEvents).values({
         proposalId,
         type: "section_regenerated",
-        message: `Regenerated section "${result.title}" from intake changes.`,
-        meta: { sectionKey: key, reason: "intake_update" },
+        message: `Regenerated section "${title}" from intake changes.`,
+        meta: {
+          sectionKey: key,
+          reason: "intake_update",
+          source: cached ? "cache" : "ai",
+        },
       });
     }
 
@@ -480,7 +581,12 @@ export async function regenerateOneSection(
       REWORD_SECTION_INSTRUCTION,
       0.85,
     );
-    const [persisted] = await upsertSections(proposalId, [result]);
+    const [persisted] = await upsertSections(
+      proposalId,
+      [result],
+      "manual_reword",
+      intake,
+    );
 
     if (!persisted) {
       return { ok: false, error: "Model returned empty content" };

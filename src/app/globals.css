@@ -489,6 +489,10 @@ body {
 
 /* —— Dialog —— */
 .koya-dialog {
+  /* Tailwind's Preflight resets margin to 0 on every element, which
+     defeats the native <dialog> UA-stylesheet centering (margin: auto)
+     once shown via showModal() — restore it explicitly. */
+  margin: auto;
   width: min(32rem, calc(100vw - 2rem));
   max-height: calc(100vh - 4rem);
   overflow-y: auto;
@@ -497,6 +501,21 @@ body {
   padding: 1.75rem;
   background: white;
   box-shadow: 0 24px 60px -24px rgba(12, 18, 34, 0.4);
+}
+
+/* Scoped to [open]: the UA stylesheet hides a closed <dialog> via
+   `dialog:not([open]) { display: none }`, but author declarations always
+   beat UA ones regardless of specificity — an unscoped `display: flex`
+   here would make the dialog permanently visible/laid out on the page
+   even while closed. Scoping to [open] mirrors that UA rule instead of
+   fighting it, and lets content opt into a fixed header/footer with only
+   its own middle region scrolling (e.g. the section history preview) via
+   `flex-1 min-h-0`. Content that doesn't opt in just sizes to itself, as
+   before, and the overflow-y above still catches anything taller than
+   max-height regardless. */
+.koya-dialog[open] {
+  display: flex;
+  flex-direction: column;
 }
 
 .koya-dialog::backdrop {
