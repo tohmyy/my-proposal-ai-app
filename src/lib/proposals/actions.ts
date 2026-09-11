@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { db } from "@/db";
-import { proposals, proposalEvents, type Proposal } from "@/db/schema";
+import { proposals, proposalEvents, proposalSections, type Proposal } from "@/db/schema";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
 import {
@@ -13,6 +13,7 @@ import {
   getMissingHardFields,
   parseIntakeFormData,
 } from "@/lib/proposals/types";
+import { normalizeTemplateId } from "@/lib/proposals/templates";
 
 function emptyToNullDate(value: string | null | undefined) {
   if (!value || !value.trim()) return null;
@@ -69,6 +70,7 @@ export async function createProposal(formData: FormData) {
       priceRange: data.priceRange,
       pricingNotes: data.pricingNotes,
       supportingMaterial: data.supportingMaterial,
+      templateId: normalizeTemplateId(data.templateId),
     })
     .returning();
 
@@ -101,6 +103,13 @@ export async function updateProposalIntake(id: string, formData: FormData) {
   const title = displayTitle(data);
   const missing = getMissingHardFields(data);
 
+  const existingSections = await db
+    .select({ id: proposalSections.id })
+    .from(proposalSections)
+    .where(eq(proposalSections.proposalId, id))
+    .limit(1);
+  const templateLocked = existingSections.length > 0;
+
   await db
     .update(proposals)
     .set({
@@ -121,6 +130,9 @@ export async function updateProposalIntake(id: string, formData: FormData) {
       priceRange: data.priceRange,
       pricingNotes: data.pricingNotes,
       supportingMaterial: data.supportingMaterial,
+      ...(templateLocked
+        ? {}
+        : { templateId: normalizeTemplateId(data.templateId) }),
       updatedAt: new Date(),
     })
     .where(eq(proposals.id, id));

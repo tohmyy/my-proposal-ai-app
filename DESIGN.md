@@ -1,6 +1,6 @@
 # Design system — Koya Ink
 
-Visual source of truth for the app chrome. Proposal **PDF/preview** CSS (`templates/koya_v1.css`, Phase 5) should feel related but may be more print-formal.
+Visual source of truth for the app chrome. Proposal **preview/PDF** skins live in [`src/app/globals.css`](./src/app/globals.css) under `.template-koya-*` (see [BUILD-PLAN-templates.md](./BUILD-PLAN-templates.md)).
 
 Tokens live in [`src/app/globals.css`](./src/app/globals.css). Fonts load in [`src/app/layout.tsx`](./src/app/layout.tsx).
 
@@ -29,13 +29,25 @@ Atmosphere: cool mist base + subtle **grain** (`.koya-grain`) and soft teal/ink 
 
 | Role | Font | Notes |
 | --- | --- | --- |
-| Display / brand | **Syne** (`--font-syne`) | App headings, wordmark |
-| UI / body | **Source Sans 3** (`--font-source-sans`) | Forms, chrome, nav |
-| Proposal content | **Source Serif 4** (`--font-source-serif`) | Section editor (`.prose-koya`), preview/PDF body |
+| Display / brand | **Syne** (`--font-syne`) | App headings, wordmark; Collage template titles |
+| UI / body | **Source Sans 3** (`--font-source-sans`) | Forms, chrome, nav; Navy/Collage body |
+| Proposal content (Classic) | **Source Serif 4** (`--font-source-serif`) | Classic skin + section editor default (`.prose-koya`) |
 
-Proposal sections should read like a client document (serif), not like app UI. Keep Syne/Source Sans for shell chrome only.
+Classic proposals read like a client letter (serif). Collage/Navy skins intentionally use sans for a more modern document feel. Keep Syne/Source Sans for shell chrome.
 
 Avoid Inter, Roboto, Arial, or system-only stacks for branded surfaces.
+
+## Proposal template skins
+
+Selected on intake (`template_id`); locked after generate. Applied via `data-template` on `.proposal-document`.
+
+| id | Feel |
+| --- | --- |
+| `koya_classic` | Warm white page, teal brand label, Source Serif titles/body (default) |
+| `koya_collage` | Gray side rail + blue accent bar; uppercase Syne section titles |
+| `koya_navy` | Full-width navy header band; white body; sans titles with navy markers |
+
+Print/export reuses the same classes; Collage hides the wide gray rail to save ink and keeps a thin blue rule.
 
 ## Layout & UI patterns
 
@@ -57,4 +69,4 @@ Avoid Inter, Roboto, Arial, or system-only stacks for branded surfaces.
 
 - Use CSS variables (`var(--koya-*)`) rather than one-off hex in new components
 - New screens should reuse `AppShell`, `Button`, `Input`, `Textarea`, `Label`, `StatusBadge`
-- Client proposal document (Phase 5) may use a calmer print stylesheet but keep teal/ink family consistent
+- Client proposal document skins may diverge from app teal for Collage/Navy accents while remaining print-friendly

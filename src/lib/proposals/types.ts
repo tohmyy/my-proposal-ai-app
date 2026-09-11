@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TimelinePhase } from "@/db/schema";
+import { normalizeTemplateId } from "@/lib/proposals/templates";
 
 export function displayTitle(input: {
   title?: string | null;
@@ -40,6 +41,11 @@ export const intakeSchema = z.object({
   pricingNotes: z.string().trim().default(""),
   supportingMaterial: z.string().trim().default(""),
   title: z.string().trim().optional().nullable(),
+  templateId: z
+    .string()
+    .trim()
+    .default("koya_classic")
+    .transform((v) => normalizeTemplateId(v)),
 });
 
 export type IntakeInput = z.infer<typeof intakeSchema>;
@@ -147,6 +153,7 @@ export function parseIntakeFormData(formData: FormData) {
     pricingNotes: formData.get("pricingNotes"),
     supportingMaterial: formData.get("supportingMaterial"),
     title: formData.get("title") || null,
+    templateId: formData.get("templateId") || "koya_classic",
   });
 }
 
@@ -168,6 +175,7 @@ export function proposalToIntake(proposal: {
   pricingNotes: string;
   supportingMaterial: string;
   title: string | null;
+  templateId?: string | null;
 }): IntakeInput {
   return {
     clientName: proposal.clientName,
@@ -192,6 +200,7 @@ export function proposalToIntake(proposal: {
     pricingNotes: proposal.pricingNotes,
     supportingMaterial: proposal.supportingMaterial,
     title: proposal.title,
+    templateId: normalizeTemplateId(proposal.templateId),
   };
 }
 

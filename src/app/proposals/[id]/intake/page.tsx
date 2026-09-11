@@ -102,6 +102,7 @@ export default async function EditIntakePage({
         clarificationGaps={clarificationGaps}
         clarifyingQuestions={clarifyingQuestions}
         submitLabel="Save intake"
+        templateLocked={sections.length > 0}
       />
     </div>
   );

@@ -22,6 +22,7 @@ Adapted from the original reference form for structured generation. Original: ht
 | Price Range | `price_range` | text | Range when no single figure. **Hard** if `proposed_price` empty |
 | Pricing Notes | `pricing_notes` | text | Terms, exclusions, assumptions. Soft alone — not enough for commercial completeness |
 | Supporting Material | `supporting_material` | text | Pasted notes / excerpts. Optional |
+| Proposal style | `template_id` | enum | `koya_classic` (default), `koya_collage`, `koya_navy`. Presentation skin only — locked after first generate. Legacy `koya_v1` → classic. |
 
 ### Timeline phase shape
 

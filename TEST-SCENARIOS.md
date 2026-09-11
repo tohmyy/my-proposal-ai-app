@@ -351,8 +351,32 @@ Use this as the complete intake for TC-01 and as the starting point for regen te
 
 **Expect**
 
-- Full composed document (header + all sections + sign-off) in proposal serif styling.
+- Full composed document (header + all sections + sign-off) in the selected template skin.
 - Export opens the browser print dialog (Save as PDF).
+
+---
+
+## TC-16 — Template skin selection + lock
+
+**PRD / plan:** [BUILD-PLAN-templates.md](./BUILD-PLAN-templates.md)
+
+**Goal:** Collage (or Navy) skin is chosen on intake, used on preview/print, and cannot be changed after generate.
+
+**Steps**
+
+1. New proposal → under **Proposal style**, select **Collage**.
+2. Fill baseline intake (Northline) → create draft → generate.
+3. Open preview: gray/blue accent rail and uppercase section titles (not Classic serif letter).
+4. Open **Edit intake**: style cards are disabled / read-only; save does not switch template.
+5. (Optional) New draft with **Navy** → generate → navy header band on preview.
+
+**Expect**
+
+- Preview `data-template` matches selection (`koya_collage` / `koya_navy` / `koya_classic`).
+- After sections exist, changing template in the UI is blocked; DB `template_id` unchanged on save.
+- Print/Export still shows the same skin cleanly.
+
+**Evidence:** intake radio screenshot + preview screenshot after generate.
 
 ---
 
@@ -362,7 +386,8 @@ Use this as the complete intake for TC-01 and as the starting point for regen te
 2. TC-02 (missing pricing)  
 3. TC-05 (supporting material marker)  
 4. TC-07 (selective pricing regen)  
-5. TC-11 (failure) if time allows  
+5. TC-16 (template skin) if demoing styles  
+6. TC-11 (failure) if time allows  
 
 ---
 
@@ -387,3 +412,4 @@ Copy into your submission sheet:
 | TC-13 | Phases-only timeline | | |
 | TC-14 | Price range only | | |
 | TC-15 | Preview-first flow | | |
+| TC-16 | Template skin + lock | | |

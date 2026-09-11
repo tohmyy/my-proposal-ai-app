@@ -246,7 +246,7 @@ Example generation response shape:
 | `price_range` | text | Range when no single figure |
 | `pricing_notes` | text | Terms / exclusions (soft alone) |
 | `supporting_material` | text | Pasted notes / excerpts `[OPEN: file upload]` |
-| `template_id` | text | Default `koya_v1` |
+| `template_id` | text | Default `koya_classic` (legacy `koya_v1` aliases to classic). Also `koya_collage`, `koya_navy` |
 | `pdf_url` | text nullable | Last generated PDF |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -324,7 +324,7 @@ Implement as Next.js Route Handlers or Server Actions. Conceptual endpoints:
 ### PDF
 
 - Compose a single HTML document from header metadata + ordered sections
-- Apply `templates/koya_v1.css` (print `@page`, page breaks)
+- Apply template skin CSS on `.proposal-document` (`template-koya-*` in `globals.css`; print `@page`, page breaks)
 - Render with Playwright/Chromium **or** a hosted browserless printer `[OPEN: local Playwright on Vercel vs external]`
 - Fallback for demo risk: high-quality **Print to PDF** from preview page if server PDF is blocked — document as known limitation if used
 

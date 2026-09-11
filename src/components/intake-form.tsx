@@ -15,6 +15,11 @@ import {
   type ClarificationGap,
   type IntakeInput,
 } from "@/lib/proposals/types";
+import {
+  normalizeTemplateId,
+  PROPOSAL_TEMPLATES,
+  type TemplateId,
+} from "@/lib/proposals/templates";
 import type { Proposal, TimelinePhase } from "@/db/schema";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +33,8 @@ type IntakeFormProps = {
   submitLabel?: string;
   clarificationGaps?: ClarificationGap[];
   clarifyingQuestions?: string[];
+  /** When true, template cannot be changed (sections already generated). */
+  templateLocked?: boolean;
 };
 
 export function IntakeForm({
@@ -36,6 +43,7 @@ export function IntakeForm({
   submitLabel = "Save draft",
   clarificationGaps = [],
   clarifyingQuestions = [],
+  templateLocked = false,
 }: IntakeFormProps) {
   const [values, setValues] = useState({
     title: initial?.title ?? "",
@@ -53,6 +61,9 @@ export function IntakeForm({
     pricingNotes: initial?.pricingNotes ?? "",
     supportingMaterial: initial?.supportingMaterial ?? "",
   });
+  const [templateId, setTemplateId] = useState<TemplateId>(
+    normalizeTemplateId(initial?.templateId),
+  );
   const [goals, setGoals] = useState<string[]>(
     initial?.goals?.length ? initial.goals : [""],
   );
@@ -88,8 +99,9 @@ export function IntakeForm({
         }))
         .filter((p) => p.label || p.duration || p.deliveryWindow),
       title: values.title || null,
+      templateId,
     }),
-    [values, goals, services, timelinePhases],
+    [values, goals, services, timelinePhases, templateId],
   );
 
   const missingHard = useMemo(
@@ -159,6 +171,66 @@ export function IntakeForm({
           {error}
         </div>
       )}
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+            Proposal style
+          </h2>
+          <p className="mt-1 text-sm text-[var(--koya-muted)]">
+            {templateLocked
+              ? "Locked after the first generate — preview and print use this skin."
+              : "Choose how the finished proposal looks. You can change this until you generate."}
+          </p>
+        </div>
+        <input type="hidden" name="templateId" value={templateId} />
+        <div
+          className="grid gap-3 sm:grid-cols-3"
+          role="radiogroup"
+          aria-label="Proposal style"
+          aria-disabled={templateLocked}
+        >
+          {PROPOSAL_TEMPLATES.map((tpl) => {
+            const selected = templateId === tpl.id;
+            return (
+              <button
+                key={tpl.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={templateLocked}
+                onClick={() => setTemplateId(tpl.id)}
+                className={cn(
+                  "rounded-lg border px-3 py-3 text-left transition",
+                  selected
+                    ? "border-[var(--koya-accent)] bg-teal-50/60 shadow-[0_0_0_1px_var(--koya-accent)]"
+                    : "border-[var(--koya-line)] bg-white hover:border-[var(--koya-accent)]/50",
+                  templateLocked && "cursor-not-allowed opacity-90",
+                )}
+              >
+                <span
+                  className="mb-2 flex h-8 overflow-hidden rounded-md border border-[var(--koya-line)]"
+                  aria-hidden
+                >
+                  {tpl.swatch.map((color) => (
+                    <span
+                      key={color}
+                      className="flex-1"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </span>
+                <span className="block font-[family-name:var(--font-syne)] text-sm font-semibold text-[var(--koya-ink)]">
+                  {tpl.name}
+                </span>
+                <span className="mt-1 block text-xs leading-snug text-[var(--koya-muted)]">
+                  {tpl.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="space-y-4">
         <div>

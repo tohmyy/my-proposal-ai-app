@@ -129,6 +129,285 @@ body {
   font-weight: 700;
 }
 
+/* —— Proposal document shells (template skins) —— */
+
+.proposal-document {
+  background: white;
+}
+
+.proposal-document .proposal-doc-header {
+  border-bottom: 1px solid var(--koya-line);
+  padding-bottom: 2rem;
+}
+
+.proposal-document .proposal-doc-brand {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--koya-accent);
+}
+
+.proposal-document .proposal-doc-title {
+  margin-top: 0.75rem;
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--koya-ink);
+  line-height: 1.2;
+}
+
+.proposal-document .proposal-doc-meta {
+  margin-top: 1rem;
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-size: 1rem;
+  color: var(--koya-ink-soft);
+  line-height: 1.6;
+}
+
+.proposal-document .proposal-doc-meta > * + * {
+  margin-top: 0.25rem;
+}
+
+.proposal-document .proposal-doc-sections {
+  border-top: 0;
+}
+
+.proposal-document .proposal-doc-section {
+  padding: 2rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--koya-line) 80%, transparent);
+}
+
+.proposal-document .proposal-doc-section:last-child {
+  border-bottom: none;
+}
+
+.proposal-document .proposal-doc-section-title {
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--koya-ink);
+  line-height: 1.3;
+}
+
+.proposal-document .proposal-doc-footer {
+  margin-top: 1rem;
+  border-top: 1px solid var(--koya-line);
+  padding-top: 2rem;
+  font-family: var(--font-source-serif), "Times New Roman", serif;
+  font-size: 1rem;
+  color: var(--koya-ink-soft);
+}
+
+/* Classic (default / current look) */
+.template-koya-classic {
+  max-width: 48rem;
+  border: 1px solid var(--koya-line);
+  border-radius: 0.125rem;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 18px 50px -28px rgba(12, 18, 34, 0.35);
+}
+
+@media (min-width: 640px) {
+  .template-koya-classic {
+    padding: 3.5rem 3rem;
+  }
+}
+
+/* Collage — gray rail, blue accent, geometric sans titles */
+.template-koya-collage {
+  --collage-rail: #e8e8e8;
+  --collage-ink: #111111;
+  --collage-accent: #2f6fed;
+  position: relative;
+  max-width: 52rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  padding: 2.5rem 2rem 2.5rem 2.75rem;
+  box-shadow: 0 20px 40px -30px rgba(0, 0, 0, 0.35);
+  color: var(--collage-ink);
+}
+
+.template-koya-collage::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.7rem;
+  background: var(--collage-rail);
+}
+
+.template-koya-collage::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0.7rem;
+  width: 4px;
+  background: var(--collage-accent);
+}
+
+.template-koya-collage .proposal-doc-header {
+  border-bottom-color: #d8d8d8;
+  padding-bottom: 1.75rem;
+}
+
+.template-koya-collage .proposal-doc-brand {
+  color: var(--collage-accent);
+  letter-spacing: 0.28em;
+}
+
+.template-koya-collage .proposal-doc-title,
+.template-koya-collage .proposal-doc-section-title {
+  font-family: var(--font-syne), system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--collage-ink);
+}
+
+.template-koya-collage .proposal-doc-title {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 700;
+}
+
+.template-koya-collage .proposal-doc-section-title {
+  border-left: 3px solid var(--collage-accent);
+  padding-left: 0.85rem;
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 700;
+}
+
+.template-koya-collage .proposal-doc-meta,
+.template-koya-collage .proposal-doc-footer {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: #444;
+}
+
+.template-koya-collage .proposal-doc-section {
+  border-bottom-color: #e0e0e0;
+}
+
+.template-koya-collage .prose-koya {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: var(--collage-ink);
+}
+
+.template-koya-collage .prose-koya h1,
+.template-koya-collage .prose-koya h2,
+.template-koya-collage .prose-koya h3 {
+  font-family: var(--font-syne), system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+@media (min-width: 640px) {
+  .template-koya-collage {
+    padding: 3.25rem 3rem 3.25rem 3.5rem;
+  }
+}
+
+/* Navy — deep header band, sans hierarchy */
+.template-koya-navy {
+  --navy: #0b1f3a;
+  --navy-mid: #1e3a5f;
+  --navy-ink: #0c1222;
+  max-width: 48rem;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 22px 48px -28px rgba(11, 31, 58, 0.55);
+}
+
+.template-koya-navy .proposal-doc-header {
+  background: var(--navy);
+  color: #f5f7fa;
+  border-bottom: none;
+  padding: 2.25rem 2rem 2rem;
+}
+
+.template-koya-navy .proposal-doc-brand {
+  color: #9eb6d4;
+  letter-spacing: 0.24em;
+}
+
+.template-koya-navy .proposal-doc-title {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.015em;
+}
+
+.template-koya-navy .proposal-doc-meta {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: #c5d3e5;
+}
+
+.template-koya-navy .proposal-doc-sections {
+  padding: 0.5rem 2rem 1rem;
+  background: #ffffff;
+}
+
+.template-koya-navy .proposal-doc-section {
+  border-bottom-color: #e2e8f0;
+}
+
+.template-koya-navy .proposal-doc-section-title {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+
+.template-koya-navy .proposal-doc-section-title::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.55rem;
+  margin-bottom: 0.1rem;
+  background: var(--navy-mid);
+  vertical-align: middle;
+}
+
+.template-koya-navy .proposal-doc-footer {
+  margin-top: 0;
+  border-top: 4px solid var(--navy);
+  padding: 1.75rem 2rem 2.25rem;
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: var(--navy-ink);
+  background: #f8fafc;
+}
+
+.template-koya-navy .prose-koya {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: var(--navy-ink);
+}
+
+.template-koya-navy .prose-koya h1,
+.template-koya-navy .prose-koya h2,
+.template-koya-navy .prose-koya h3 {
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  color: var(--navy);
+}
+
+.template-koya-navy .prose-koya ul > li::marker,
+.template-koya-navy .prose-koya ol > li::marker {
+  color: var(--navy-mid);
+}
+
+@media (min-width: 640px) {
+  .template-koya-navy .proposal-doc-header {
+    padding: 2.75rem 3rem 2.5rem;
+  }
+
+  .template-koya-navy .proposal-doc-sections {
+    padding: 0.75rem 3rem 1.25rem;
+  }
+
+  .template-koya-navy .proposal-doc-footer {
+    padding: 2rem 3rem 2.75rem;
+  }
+}
+
 /* —— Print / Export PDF (preview) —— */
 @media print {
   @page {
@@ -154,11 +433,36 @@ body {
   .proposal-document.print-root {
     max-width: none !important;
     margin: 0 !important;
-    padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     background: white !important;
+  }
+
+  .template-koya-classic.print-root {
+    padding: 0 !important;
+  }
+
+  .template-koya-collage.print-root {
+    padding: 0 0 0 0.85rem !important;
+  }
+
+  .template-koya-collage.print-root::before {
+    display: none;
+  }
+
+  .template-koya-collage.print-root::after {
+    width: 3px;
+  }
+
+  .template-koya-navy.print-root {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .template-koya-navy .proposal-doc-header {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .proposal-document.print-root section {

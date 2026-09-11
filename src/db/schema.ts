@@ -59,7 +59,7 @@ export const proposals = pgTable("proposals", {
   lastGeneratedIntakeSnapshot: jsonb("last_generated_intake_snapshot").$type<
     Record<string, unknown>
   >(),
-  templateId: text("template_id").notNull().default("koya_v1"),
+  templateId: text("template_id").notNull().default("koya_classic"),
   pdfUrl: text("pdf_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

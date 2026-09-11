@@ -4,6 +4,8 @@ import { InlineSectionBody } from "@/components/inline-section-body";
 import { InlineEditProvider } from "@/components/inline-edit-context";
 import { saveProposalHeaderField } from "@/lib/proposals/actions";
 import { saveSectionTitle } from "@/lib/proposals/generate-actions";
+import { getProposalTemplate } from "@/lib/proposals/templates";
+import { cn } from "@/lib/utils";
 
 function formatCallDate(value: string | null) {
   if (!value) return null;
@@ -25,6 +27,7 @@ export function ProposalDocument({
   sections: ProposalSection[];
   editable?: boolean;
 }) {
+  const template = getProposalTemplate(proposal.templateId);
   const clientLabel =
     proposal.companyName?.trim() ||
     proposal.clientName?.trim() ||
@@ -32,15 +35,17 @@ export function ProposalDocument({
   const dateLabel = formatCallDate(proposal.dateOfCall);
 
   const article = (
-    <article className="proposal-document print-root mx-auto w-full max-w-3xl rounded-sm border border-[var(--koya-line)] bg-white px-8 py-10 shadow-[0_18px_50px_-28px_rgba(12,18,34,0.35)] sm:px-12 sm:py-14">
-      <header className="border-b border-[var(--koya-line)] pb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--koya-accent)]">
-          Koya Talent
-        </p>
-        <h1 className="mt-3 font-[family-name:var(--font-source-serif)] text-3xl font-semibold tracking-tight text-[var(--koya-ink)] sm:text-4xl">
-          Proposal for {clientLabel}
-        </h1>
-        <div className="mt-4 space-y-1 font-[family-name:var(--font-source-serif)] text-base text-[var(--koya-ink-soft)]">
+    <article
+      data-template={template.id}
+      className={cn(
+        "proposal-document print-root mx-auto w-full max-w-3xl",
+        template.className,
+      )}
+    >
+      <header className="proposal-doc-header">
+        <p className="proposal-doc-brand">Koya Talent</p>
+        <h1 className="proposal-doc-title">Proposal for {clientLabel}</h1>
+        <div className="proposal-doc-meta">
           {editable ? (
             <p>
               Prepared by{" "}
@@ -117,10 +122,10 @@ export function ProposalDocument({
         </div>
       </header>
 
-      <div className="divide-y divide-[var(--koya-line)]/80">
+      <div className="proposal-doc-sections">
         {sections.map((section, index) => (
-          <section key={section.id} className="py-8">
-            <h2 className="font-[family-name:var(--font-source-serif)] text-xl font-semibold text-[var(--koya-ink)] sm:text-2xl">
+          <section key={section.id} className="proposal-doc-section">
+            <h2 className="proposal-doc-section-title">
               {index + 1}.{" "}
               {editable ? (
                 <InlineText
@@ -148,7 +153,7 @@ export function ProposalDocument({
         ))}
       </div>
 
-      <footer className="mt-4 border-t border-[var(--koya-line)] pt-8 font-[family-name:var(--font-source-serif)] text-base text-[var(--koya-ink-soft)]">
+      <footer className="proposal-doc-footer">
         <p>Looking forward to working together.</p>
         {proposal.salespersonName?.trim() && (
           <p className="mt-4">

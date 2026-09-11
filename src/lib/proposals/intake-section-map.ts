@@ -47,6 +47,7 @@ export function diffIntake(
   ]);
 
   for (const key of keys) {
+    if (key === "templateId") continue;
     const av = a[key];
     const bv = b[key];
     const differs =
