@@ -114,7 +114,10 @@ export default async function ProposalHubPage({
               )}
             </>
           )}
-          <GenerateButton proposalId={id} />
+          {(proposal.status === "draft" ||
+            proposal.status === "needs_clarification") && (
+            <GenerateButton proposalId={id} />
+          )}
         </div>
       </header>
 

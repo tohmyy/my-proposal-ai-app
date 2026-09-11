@@ -16,6 +16,7 @@ import { regenerateSection } from "@/lib/ai/regenerate";
 import { renderAndStoreProposalPdf } from "@/lib/pdf/proposal-pdf";
 import { getProposal } from "@/lib/proposals/actions";
 import {
+  diffIntake,
   getStaleSections,
   type SectionKey,
 } from "@/lib/proposals/intake-section-map";
@@ -146,13 +147,38 @@ export async function generateProposal(proposalId: string): Promise<GenerateResu
     return { ok: false, error: "Proposal not found" };
   }
 
+  const intake = proposalToIntake(proposal);
+
+  // Nothing has changed since the last attempt — skip the AI call entirely
+  // rather than re-generating identical content (e.g. a needs_clarification
+  // retry click before the intake has actually been edited).
+  if (
+    proposal.lastGeneratedIntakeSnapshot &&
+    diffIntake(proposal.lastGeneratedIntakeSnapshot as unknown as IntakeInput, intake)
+      .length === 0
+  ) {
+    await db.insert(proposalEvents).values({
+      proposalId,
+      type: "generate_skipped",
+      message: "Intake unchanged since the last generation — skipped calling the AI.",
+    });
+
+    const sections = await listSections(proposalId);
+    return {
+      ok: true,
+      status: proposal.status === "needs_clarification" ? "needs_clarification" : "in_review",
+      gaps: [],
+      clarifyingQuestions: [],
+      sectionCount: sections.length,
+    };
+  }
+
   await db
     .update(proposals)
     .set({ status: "generating", updatedAt: new Date() })
     .where(eq(proposals.id, proposalId));
 
   try {
-    const intake = proposalToIntake(proposal);
     const result = await generateProposalContent(intake);
 
     if (result.sections.length > 0) {
