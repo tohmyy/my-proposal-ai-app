@@ -18,13 +18,20 @@ export const config = {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   if (PUBLIC_PATHS.has(pathname) || PREVIEW_PATH_RE.test(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   if (!getSessionCookie(request)) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }

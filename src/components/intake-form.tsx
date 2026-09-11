@@ -803,13 +803,29 @@ export function IntakeForm({
         />
       </section>
 
-      {/* Call notes live in "Fill from a call summary" and are stored in
-          supportingMaterial on extract — no separate paste field. */}
-      <input
-        type="hidden"
-        name="supportingMaterial"
-        value={values.supportingMaterial}
-      />
+      {/* Call notes from extract land in supportingMaterial; users can also
+          paste extras here for generation. */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+            Supporting material
+          </h2>
+          <p className="mt-1 text-sm text-[var(--koya-muted)]">
+            Extra notes or excerpts for generation. Auto-filled when you extract
+            from a call summary or document.
+          </p>
+        </div>
+        <Area
+          id="supportingMaterial"
+          label="Notes / excerpts"
+          optional
+          value={values.supportingMaterial}
+          onChange={(v) => setField("supportingMaterial", v)}
+          rows={5}
+          placeholder="Paste distinctive phrases or constraints from the discovery call…"
+          errorNote={fieldErrors.supportingMaterial}
+        />
+      </section>
 
       <div className="border-t border-[var(--koya-line)] pt-6">
         <IntakeFormActions {...actionsProps} />

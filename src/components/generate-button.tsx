@@ -33,7 +33,7 @@ export function GenerateButton({
   }
 
   return (
-    <Button type="button" variant={variant} onClick={onGenerate} loading={pending} size="lg">
+    <Button type="button" variant={variant} onClick={onGenerate} loading={pending}>
       {pending ? "Generating…" : "Generate with AI"}
     </Button>
   );

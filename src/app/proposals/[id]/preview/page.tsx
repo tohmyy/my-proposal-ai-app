@@ -34,6 +34,34 @@ export default async function ProposalPreviewPage({
     getCurrentUser(),
   ]);
 
+  // Public client link + Chromium print capture: document only, no app chrome.
+  const publicDocumentOnly = !user || isPrintCapture;
+
+  if (publicDocumentOnly) {
+    if (sections.length === 0) {
+      return (
+        <div className="mx-auto max-w-lg px-6 py-24 text-center">
+          <p className="font-[family-name:var(--font-syne)] text-xl font-semibold text-[var(--koya-ink)]">
+            Proposal not available
+          </p>
+          <p className="mt-2 text-sm text-[var(--koya-muted)]">
+            This proposal has no content to display yet.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        <ProposalDocument
+          proposal={proposal}
+          sections={sections}
+          settings={settings}
+          editable={false}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in-up">
       <header className="no-print flex flex-col gap-4 border-b border-[var(--koya-line)] pb-6 sm:flex-row sm:items-start sm:justify-between">
@@ -51,43 +79,39 @@ export default async function ProposalPreviewPage({
             Review proposal
           </h1>
           <p className="max-w-xl text-[var(--koya-muted)]">
-            Read the full draft as the client would see it. When you are ready,
-            open the section editor to revise specific parts — or export a PDF
-            via your browser&apos;s print dialog.
+            Read the full draft as the client would see it. Use the hub or
+            section editor for structural changes.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {user && (
-            <Link
-              href={`/proposals/${id}`}
-              className={cn(buttonVariants({ variant: "outline" }))}
-            >
-              Back to hub
-            </Link>
-          )}
+          <Link
+            href={`/proposals/${id}`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Back to hub
+          </Link>
           {sections.length > 0 && (
             <>
               <ExportPdfButton proposalId={id} title={proposal.title} />
-              {user && (
-                <>
-                  <Link
-                    href={`/proposals/${id}/edit`}
-                    className={cn(buttonVariants({ variant: "outline" }))}
-                  >
-                    Edit sections
-                  </Link>
-                  {proposal.status === "in_review" && (
-                    <RequestApprovalButton proposalId={id} />
-                  )}
-                </>
+              <Link
+                href={`/proposals/${id}/edit`}
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                Edit sections
+              </Link>
+              {proposal.status === "in_review" && (
+                <RequestApprovalButton proposalId={id} />
               )}
             </>
           )}
         </div>
       </header>
 
-      {user && proposal.status === "pending_approval" && (
-        <ApprovalReviewPanel proposalId={id} canApprove={user.role === "approver"} />
+      {proposal.status === "pending_approval" && (
+        <ApprovalReviewPanel
+          proposalId={id}
+          canApprove={user.role === "approver"}
+        />
       )}
 
       {sections.length === 0 ? (
@@ -111,7 +135,7 @@ export default async function ProposalPreviewPage({
           proposal={proposal}
           sections={sections}
           settings={settings}
-          editable={!isPrintCapture && Boolean(user)}
+          editable
         />
       )}
     </div>

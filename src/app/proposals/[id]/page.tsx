@@ -12,11 +12,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/proposals/types";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { GenerateButton } from "@/components/generate-button";
-import { SendEmailButton } from "@/components/send-email-button";
-import { GeneratePdfButton } from "@/components/generate-pdf-button";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { ProposalHubActions } from "@/components/proposal-hub-actions";
 import type { TimelinePhase } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -79,58 +75,12 @@ export default async function ProposalHubPage({
               .join(" · ") || "Client details incomplete"}
           </p>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
-          <Link
-            href={`/proposals/${id}/intake`}
-            className={cn(
-              buttonVariants({
-                variant:
-                  proposal.status === "needs_clarification" ? "default" : "outline",
-              }),
-            )}
-          >
-            Edit intake
-          </Link>
-          {canEdit && (
-            <>
-              <Link
-                href={`/proposals/${id}/preview`}
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                Preview proposal
-              </Link>
-              <Link
-                href={`/proposals/${id}/edit`}
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                Edit sections
-              </Link>
-              <GeneratePdfButton proposalId={id} />
-              {proposal.pdfUrl && (
-                <a
-                  href={proposal.pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(buttonVariants({ variant: "outline" }))}
-                >
-                  Download PDF
-                </a>
-              )}
-              {proposal.status === "approved" && (
-                <SendEmailButton proposalId={id} />
-              )}
-            </>
-          )}
-          {(proposal.status === "draft" ||
-            proposal.status === "needs_clarification") && (
-            <GenerateButton
-              proposalId={id}
-              variant={
-                proposal.status === "needs_clarification" ? "outline" : "default"
-              }
-            />
-          )}
-        </div>
+        <ProposalHubActions
+          proposalId={id}
+          status={proposal.status}
+          hasSections={canEdit}
+          pdfUrl={proposal.pdfUrl}
+        />
       </header>
 
       {proposal.status === "needs_clarification" && (
