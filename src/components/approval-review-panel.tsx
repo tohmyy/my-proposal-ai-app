@@ -4,21 +4,21 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import { approveProposal, rejectProposal } from "@/lib/proposals/actions";
 
 export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function onApprove() {
-    setError(null);
     startTransition(async () => {
       const result = await approveProposal(proposalId);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       router.refresh();
@@ -26,11 +26,10 @@ export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
   }
 
   function onConfirmReject() {
-    setError(null);
     startTransition(async () => {
       const result = await rejectProposal(proposalId, reason);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       setRejecting(false);
@@ -78,7 +77,6 @@ export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
               onClick={() => {
                 setRejecting(false);
                 setReason("");
-                setError(null);
               }}
               disabled={pending}
             >
@@ -87,8 +85,6 @@ export function ApprovalReviewPanel({ proposalId }: { proposalId: string }) {
           </div>
         </div>
       )}
-
-      {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
     </div>
   );
 }

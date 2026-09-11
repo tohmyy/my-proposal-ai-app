@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StringListEditor } from "@/components/string-list-editor";
 import { TimelinePhasesEditor } from "@/components/timeline-phases-editor";
 import { RegenerateSectionsButton } from "@/components/regenerate-sections-button";
+import { useToast } from "@/components/ui/toast";
 import { regenerateAffectedSections } from "@/lib/proposals/generate-actions";
 import {
   getMissingHardFields,
@@ -89,8 +90,8 @@ export function IntakeForm({
       ? initial.timelinePhases
       : [{ phase: 1, label: "", duration: "", deliveryWindow: "" }],
   );
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const toast = useToast();
 
   // Snapshot of the form's already-defaulted first-render shape, used to
   // detect unsaved changes. Lazy so it's captured exactly once, from the
@@ -111,15 +112,13 @@ export function IntakeForm({
 
   const router = useRouter();
   const [regeneratePending, startRegenerateTransition] = useTransition();
-  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   function handleRegenerate() {
     if (!proposalId) return;
-    setRegenerateError(null);
     startRegenerateTransition(async () => {
       const result = await regenerateAffectedSections(proposalId);
       if (!result.ok) {
-        setRegenerateError(result.error);
+        toast.error(result.error);
         router.refresh();
         return;
       }
@@ -181,11 +180,10 @@ export function IntakeForm({
 
   async function onSubmit(formData: FormData) {
     setPending(true);
-    setError(null);
     try {
       const result = await action(formData);
       if (result && "ok" in result && result.ok === false) {
-        setError(result.error);
+        toast.error(result.error);
       }
     } catch (err) {
       if (
@@ -201,7 +199,7 @@ export function IntakeForm({
         );
         throw err;
       }
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setPending(false);
     }
@@ -219,7 +217,6 @@ export function IntakeForm({
     canRegenerate,
     regenerateReason: regenerateDisabledReason,
     regeneratePending,
-    regenerateError,
     onRegenerate: handleRegenerate,
   };
 
@@ -252,12 +249,6 @@ export function IntakeForm({
             these remain empty:{" "}
             {missingHard.map((k) => HARD_FIELD_LABELS[k]).join(", ")}.
           </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-          {error}
         </div>
       )}
 
@@ -572,7 +563,6 @@ function IntakeFormActions({
   canRegenerate,
   regenerateReason,
   regeneratePending,
-  regenerateError,
   onRegenerate,
 }: {
   pending: boolean;
@@ -586,7 +576,6 @@ function IntakeFormActions({
   canRegenerate: boolean;
   regenerateReason?: string;
   regeneratePending: boolean;
-  regenerateError: string | null;
   onRegenerate: () => void;
 }) {
   return (
@@ -639,7 +628,6 @@ function IntakeFormActions({
               pending={regeneratePending}
               disabled={!canRegenerate}
               disabledReason={regenerateReason}
-              error={regenerateError}
               onClick={onRegenerate}
             />
           </div>

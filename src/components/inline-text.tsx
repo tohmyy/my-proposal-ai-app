@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { useInlineEditSlot } from "@/components/inline-edit-context";
 import { localTodayIsoDate } from "@/lib/proposals/types";
 import { cn } from "@/lib/utils";
@@ -39,26 +40,23 @@ export function InlineText({
   const [savedValue, setSavedValue] = useState(value);
   const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLSpanElement>(id);
   const [draft, setDraft] = useState(value);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
 
   function startEditing() {
     setDraft(savedValue);
-    setError(null);
     open();
   }
 
   function cancel() {
-    setError(null);
     close();
   }
 
   function save() {
-    setError(null);
     startTransition(async () => {
       const result = await onSave(draft.trim());
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       setSavedValue(draft.trim());
@@ -88,7 +86,6 @@ export function InlineText({
         <Button type="button" size="sm" variant="ghost" onClick={cancel} disabled={pending}>
           Cancel
         </Button>
-        {error && <span className="text-sm text-rose-700">{error}</span>}
       </span>
     );
   }

@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionHistoryDialog } from "@/components/section-history-dialog";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
+import { useToast } from "@/components/ui/toast";
 import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
 
@@ -25,10 +26,9 @@ export function SectionEditor({
   sections: Section[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [activeKey, setActiveKey] = useState(sections[0]?.key ?? "");
   const active = sections.find((s) => s.key === activeKey) ?? sections[0];
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [regenerating, startRegenerateTransition] = useTransition();
 
@@ -58,31 +58,27 @@ export function SectionEditor({
 
   function onSave() {
     if (!editor || !active) return;
-    setMessage(null);
-    setError(null);
     const html = editor.getHTML();
     startTransition(async () => {
       const result = await saveSectionHtml(proposalId, active.key, html);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
-      setMessage(`Saved “${active.title}”.`);
+      toast.success(`Saved “${active.title}”.`);
     });
   }
 
   function onRegenerate() {
     if (!active) return;
-    setMessage(null);
-    setError(null);
     startRegenerateTransition(async () => {
       const result = await regenerateOneSection(proposalId, active.key);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
-      setMessage(`Regenerated “${result.title}”.`);
+      toast.success(`Regenerated “${result.title}”.`);
       router.refresh();
     });
   }
@@ -102,11 +98,7 @@ export function SectionEditor({
           <button
             key={section.id}
             type="button"
-            onClick={() => {
-              setActiveKey(section.key);
-              setMessage(null);
-              setError(null);
-            }}
+            onClick={() => setActiveKey(section.key)}
             className={cn(
               "block w-full rounded-md px-3 py-2 text-left text-sm font-medium transition",
               section.key === active?.key
@@ -156,11 +148,6 @@ export function SectionEditor({
         <div className="rounded-xl border border-[var(--koya-line)] bg-white/80 shadow-sm">
           <EditorContent editor={editor} />
         </div>
-
-        {message && (
-          <p className="text-sm font-medium text-[var(--koya-accent)]">{message}</p>
-        )}
-        {error && <p className="text-sm text-rose-700">{error}</p>}
       </div>
 
       {active && (
@@ -172,7 +159,7 @@ export function SectionEditor({
           onOpenChange={setHistoryOpen}
           onRestored={(result) => {
             editor?.commands.setContent(result.htmlContent, { emitUpdate: false });
-            setMessage(`Restored “${result.title}”.`);
+            toast.success(`Restored “${result.title}”.`);
           }}
         />
       )}

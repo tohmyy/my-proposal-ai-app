@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionHistoryDialog } from "@/components/section-history-dialog";
 import { SectionToolbar } from "@/components/rich-text-toolbar";
+import { useToast } from "@/components/ui/toast";
 import { useInlineEditSlot } from "@/components/inline-edit-context";
 import { regenerateOneSection, saveSectionHtml } from "@/lib/proposals/generate-actions";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ export function InlineSectionBody({
 }) {
   const [savedHtml, setSavedHtml] = useState(section.htmlContent || "<p></p>");
   const { isActive: editing, open, close, ref } = useInlineEditSlot<HTMLDivElement>(id);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [regenerating, startRegenerateTransition] = useTransition();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -52,23 +53,20 @@ export function InlineSectionBody({
   function startEditing(e: MouseEvent) {
     if (editing) return;
     if ((e.target as HTMLElement).closest("a")) return;
-    setError(null);
     open();
   }
 
   function cancel() {
-    setError(null);
     close();
   }
 
   function save() {
     if (!editor) return;
-    setError(null);
     const html = editor.getHTML();
     startTransition(async () => {
       const result = await saveSectionHtml(proposalId, section.key, html);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       setSavedHtml(html);
@@ -77,11 +75,10 @@ export function InlineSectionBody({
   }
 
   function regenerate() {
-    setError(null);
     startRegenerateTransition(async () => {
       const result = await regenerateOneSection(proposalId, section.key);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       setSavedHtml(result.htmlContent);
@@ -124,7 +121,6 @@ export function InlineSectionBody({
           >
             Cancel
           </Button>
-          {error && <span className="text-sm text-rose-700">{error}</span>}
         </div>
       )}
       <div

@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import { updateSettings, uploadSenderLogo } from "@/lib/settings/actions";
 import type { Settings } from "@/db/schema";
 
 export function SettingsForm({ initial }: { initial: Settings }) {
   const router = useRouter();
+  const toast = useToast();
 
   const [values, setValues] = useState({
     senderCompanyName: initial.senderCompanyName,
@@ -17,11 +19,9 @@ export function SettingsForm({ initial }: { initial: Settings }) {
     fromEmail: initial.fromEmail,
     emailSalutationTemplate: initial.emailSalutationTemplate,
   });
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [savePending, startSaveTransition] = useTransition();
 
   const [logoUrl, setLogoUrl] = useState(initial.senderLogoUrl);
-  const [logoError, setLogoError] = useState<string | null>(null);
   const [logoPending, startLogoTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,11 +30,10 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   }
 
   async function onSave(formData: FormData) {
-    setSaveError(null);
     startSaveTransition(async () => {
       const result = await updateSettings(formData);
       if (!result.ok) {
-        setSaveError(result.error);
+        toast.error(result.error);
         return;
       }
       router.refresh();
@@ -42,11 +41,10 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   }
 
   async function onUploadLogo(formData: FormData) {
-    setLogoError(null);
     startLogoTransition(async () => {
       const result = await uploadSenderLogo(formData);
       if (!result.ok) {
-        setLogoError(result.error);
+        toast.error(result.error);
         return;
       }
       setLogoUrl(result.url);
@@ -134,12 +132,6 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           </div>
         </section>
 
-        {saveError && (
-          <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-            {saveError}
-          </div>
-        )}
-
         <Button type="submit" disabled={savePending} size="lg">
           {savePending ? "Saving…" : "Save settings"}
         </Button>
@@ -179,7 +171,6 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             {logoPending ? "Uploading…" : "Upload logo"}
           </Button>
         </form>
-        {logoError && <p className="text-sm text-rose-700">{logoError}</p>}
       </div>
     </div>
   );

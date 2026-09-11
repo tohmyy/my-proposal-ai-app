@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import {
   previewProposalEmail,
   sendProposalEmail,
@@ -22,7 +23,7 @@ function parseAddressList(value: string): string[] {
 
 export function SendEmailButton({ proposalId }: { proposalId: string }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const [loadPending, startLoadTransition] = useTransition();
   const [sendPending, startSendTransition] = useTransition();
 
@@ -34,11 +35,10 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
   const [text, setText] = useState("");
 
   function onOpenPreview() {
-    setError(null);
     startLoadTransition(async () => {
       const result = await previewProposalEmail(proposalId);
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         return;
       }
       setTo(result.to);
@@ -59,7 +59,7 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
         bcc: parseAddressList(bcc),
       });
       if (!result.ok) {
-        setError(result.error);
+        toast.error(result.error);
         setOpen(false);
         router.refresh();
         return;
@@ -70,13 +70,10 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <>
       <Button type="button" onClick={onOpenPreview} disabled={loadPending}>
         {loadPending ? "Loading…" : "Send to client"}
       </Button>
-      {error && !open && (
-        <p className="max-w-xs text-right text-sm text-rose-700">{error}</p>
-      )}
 
       <Dialog open={open} onClose={() => setOpen(false)} className="text-left">
         <div className="space-y-4">
@@ -131,8 +128,6 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
             />
           </div>
 
-          {error && <p className="text-sm text-rose-700">{error}</p>}
-
           <div className="flex justify-end gap-3 border-t border-[var(--koya-line)] pt-4">
             <Button
               type="button"
@@ -148,6 +143,6 @@ export function SendEmailButton({ proposalId }: { proposalId: string }) {
           </div>
         </div>
       </Dialog>
-    </div>
+    </>
   );
 }

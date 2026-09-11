@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ToastProvider } from "@/components/ui/toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -37,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </main>
     </div>
   );

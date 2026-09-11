@@ -6,13 +6,11 @@ export function RegenerateSectionsButton({
   pending,
   disabled,
   disabledReason,
-  error,
   onClick,
 }: {
   pending: boolean;
   disabled?: boolean;
   disabledReason?: string;
-  error?: string | null;
   onClick: () => void;
 }) {
   return (
@@ -25,12 +23,8 @@ export function RegenerateSectionsButton({
       >
         {pending ? "Regenerating…" : "Regenerate these sections"}
       </Button>
-      {error ? (
-        <p className="text-sm text-rose-700">{error}</p>
-      ) : (
-        disabledReason && (
-          <p className="text-sm text-[var(--koya-muted)]">{disabledReason}</p>
-        )
+      {disabledReason && (
+        <p className="text-sm text-[var(--koya-muted)]">{disabledReason}</p>
       )}
     </div>
   );
