@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { dropdownMenuItemClass } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
 import { generateProposalPdf } from "@/lib/proposals/generate-actions";
 
@@ -37,7 +38,7 @@ export function GeneratePdfButton({
         role="menuitem"
         onClick={onGenerate}
         disabled={pending}
-        className="block w-full px-3 py-2 text-left text-sm font-medium text-[var(--koya-ink)] hover:bg-[var(--koya-mist)] disabled:opacity-50"
+        className={dropdownMenuItemClass}
       >
         {pending ? "Generating PDF…" : "Generate PDF"}
       </button>

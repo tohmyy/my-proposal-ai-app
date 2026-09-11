@@ -34,7 +34,8 @@ export default async function ProposalPreviewPage({
     getCurrentUser(),
   ]);
 
-  // Public client link + Chromium print capture: document only, no app chrome.
+  // Public client link + Chromium print capture: document only (plus a
+  // no-print download strip for real clients — hidden during ?print=1).
   const publicDocumentOnly = !user || isPrintCapture;
 
   if (publicDocumentOnly) {
@@ -52,6 +53,22 @@ export default async function ProposalPreviewPage({
     }
     return (
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        {!isPrintCapture && (
+          <div className="no-print mb-6 flex flex-wrap items-center justify-end gap-2">
+            {proposal.pdfUrl ? (
+              <a
+                href={proposal.pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants())}
+                download
+              >
+                Download PDF
+              </a>
+            ) : null}
+            <ExportPdfButton proposalId={id} title={proposal.title} />
+          </div>
+        )}
         <ProposalDocument
           proposal={proposal}
           sections={sections}

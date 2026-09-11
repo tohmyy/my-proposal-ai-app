@@ -6,6 +6,7 @@ Week 3 proposal application: intake → Claude generate → human review → app
 
 | Doc | Purpose |
 | --- | --- |
+| [ONE-PAGER.md](./ONE-PAGER.md) | One-page submission doc — problem, pipeline, usage, gaps |
 | [PRD.md](./PRD.md) | Product brief + test scenarios |
 | [TDD.md](./TDD.md) | Architecture, data model, APIs |
 | [AI-SPEC.md](./AI-SPEC.md) | Claude prompts, JSON contracts, guardrails |
